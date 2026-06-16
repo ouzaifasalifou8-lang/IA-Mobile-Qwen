@@ -437,7 +437,7 @@ export const useChatSession = (
       type: 'text',
       metadata: {system: true, ...metadata},
     };
-    modelStore.setInferencingawait addMessage(textMessage);
+    await addMessage(textMessage);
   };
 
   const handleSendPress = async (message: MessageType.PartialText) => {
