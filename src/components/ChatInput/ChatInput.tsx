@@ -608,7 +608,7 @@ export const ChatInput = observer(
                       const Speech = NativeModules.RNSpeech;
                       if (Speech) {
                         Speech.startListening('fr-FR', (text) => {
-                          setValue(text);
+                          setText(text);
                         });
                       }
                     }
