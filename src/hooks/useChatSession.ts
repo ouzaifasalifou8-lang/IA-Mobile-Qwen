@@ -475,17 +475,17 @@ export const useChatSession = (
       },
     };
     await addMessage(textMessage);
-const esp32Ip = '192.168.1.100';
-const msg = message.text.toLowerCase();
-const isOn = msg.includes('allume') || msg.includes('active');
-const isOff = msg.includes('eteins') || msg.includes('coupe');
-if (isOn || isOff) {
-  const led = msg.includes('rouge') ? 'rouge' : msg.includes('vert') ? 'verte' : msg.includes('bleu') ? 'bleue' : 'all';
-  const action = isOn ? 'on' : 'off';
-  const url = 'http://' + esp32Ip + '/led/' + action + '?nom=' + led;
-  fetch(url).then(function() { addSystemMessage('OK LED ' + led + ' ' + (action === 'on' ? 'allumee' : 'eteinte') + ' !'); }).catch(function() { addSystemMessage('ERREUR ESP32 non accessible !'); });
-  return;
-}
+    const esp32Ip = '192.168.1.100';
+    const msg = message.text.toLowerCase();
+    const isOn = msg.includes('allume') || msg.includes('active');
+    const isOff = msg.includes('eteins') || msg.includes('coupe');
+    if (isOn || isOff) {
+      const led = msg.includes('rouge') ? 'rouge' : msg.includes('vert') ? 'verte' : msg.includes('bleu') ? 'bleue' : 'all';
+      const action = isOn ? 'on' : 'off';
+      const url = 'http://' + esp32Ip + '/led/' + action + '?nom=' + led;
+      fetch(url).then(function() { addSystemMessage('OK LED ' + led + ' !'); }).catch(function() { addSystemMessage('ERREUR ESP32 !'); });
+      return;
+    }
     modelStore.setInferencing(true);
     modelStore.setIsStreaming(false);
     chatSessionStore.setIsGenerating(true);
