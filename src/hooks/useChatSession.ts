@@ -437,7 +437,7 @@ export const useChatSession = (
       type: 'text',
       metadata: {system: true, ...metadata},
     };
-    await addMessage(textMessage);
+    modelStore.setInferencingawait addMessage(textMessage);
   };
 
   const handleSendPress = async (message: MessageType.PartialText) => {
@@ -475,6 +475,16 @@ export const useChatSession = (
       },
     };
     await addMessage(textMessage);
+const ESP32_IP = '192.168.1.100';
+const msg = message.text.toLowerCase();
+const isOn = msg.includes('allume') || msg.includes('on') || msg.includes('active');
+const isOff = msg.includes('eteins') || msg.includes('off') || msg.includes('coupe');
+if (isOn || isOff) {
+  const led = msg.includes('rouge') ? 'rouge' : msg.includes('vert') ? 'verte' : msg.includes('bleu') ? 'bleue' : 'all';
+  const action = isOn ? 'on' : 'off';
+  fetch(`http://${ESP32_IP}/led/${action}?nom=${led}`).then(() => addSystemMessage(`💡 LED ${led} ${action === 'on' ? 'allumée' : 'éteinte'} !`)).catch(() => addSystemMessage('⚠️ ESP32 non accessible !'));
+  return;
+}
     modelStore.setInferencing(true);
     modelStore.setIsStreaming(false);
     chatSessionStore.setIsGenerating(true);
