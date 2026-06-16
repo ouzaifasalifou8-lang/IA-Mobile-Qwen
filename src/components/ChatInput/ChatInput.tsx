@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {NativeModules, PermissionsAndroid} from 'react-native';
 import {
   TextInput,
   TextInputProps,
@@ -595,6 +596,33 @@ export const ChatInput = observer(
                   audio independently of text generation. Self-gates:
                   returns null when TTS is unavailable. */}
               <VoiceChip />
+
+              {/* Bouton Micro STT - OUZAIF */}
+              <TouchableOpacity
+                onPress={async () => {
+                  try {
+                    const granted = await PermissionsAndroid.request(
+                      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+                    );
+                    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+                      const Speech = NativeModules.RNSpeech;
+                      if (Speech) {
+                        Speech.startListening('fr-FR', (text) => {
+                          setValue(text);
+                        });
+                      }
+                    }
+                  } catch (e) {
+                    console.log('Micro erreur:', e);
+                  }
+                }}
+                style={{
+                  padding: 8,
+                  marginHorizontal: 4,
+                }}
+              >
+                <Text style={{fontSize: 22}}>mic</Text>
+              </TouchableOpacity>
 
               {/* Send/Stop Button */}
               {isStopVisible ? (
