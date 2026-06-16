@@ -482,7 +482,7 @@ const isOff = msg.includes('eteins') || msg.includes('off') || msg.includes('cou
 if (isOn || isOff) {
   const led = msg.includes('rouge') ? 'rouge' : msg.includes('vert') ? 'verte' : msg.includes('bleu') ? 'bleue' : 'all';
   const action = isOn ? 'on' : 'off';
-  fetch(`http://${ESP32_IP}/led/${action}?nom=${led}`).then(() => addSystemMessage(`💡 LED ${led} ${action === 'on' ? 'allumée' : 'éteinte'} !`)).catch(() => addSystemMessage('⚠️ ESP32 non accessible !'));
+  fetch(`http://${ESP32_IP}/led/${action}?nom=${led}`).then(() => addSystemMessage(`OK LED ${led} ${action === 'on' ? 'allumée' : 'éteinte'} !`)).catch(() => addSystemMessage('ERREUR ESP32 non accessible !'));
   return;
 }
     modelStore.setInferencing(true);
