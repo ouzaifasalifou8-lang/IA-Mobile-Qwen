@@ -475,14 +475,15 @@ export const useChatSession = (
       },
     };
     await addMessage(textMessage);
-const ESP32_IP = '192.168.1.100';
+const esp32Ip = '192.168.1.100';
 const msg = message.text.toLowerCase();
-const isOn = msg.includes('allume') || msg.includes('on') || msg.includes('active');
-const isOff = msg.includes('eteins') || msg.includes('off') || msg.includes('coupe');
+const isOn = msg.includes('allume') || msg.includes('active');
+const isOff = msg.includes('eteins') || msg.includes('coupe');
 if (isOn || isOff) {
   const led = msg.includes('rouge') ? 'rouge' : msg.includes('vert') ? 'verte' : msg.includes('bleu') ? 'bleue' : 'all';
   const action = isOn ? 'on' : 'off';
-  fetch(`http://${ESP32_IP}/led/${action}?nom=${led}`).then(() => addSystemMessage(`OK LED ${led} ${action === 'on' ? 'allumée' : 'éteinte'} !`)).catch(() => addSystemMessage('ERREUR ESP32 non accessible !'));
+  const url = 'http://' + esp32Ip + '/led/' + action + '?nom=' + led;
+  fetch(url).then(function() { addSystemMessage('OK LED ' + led + ' ' + (action === 'on' ? 'allumee' : 'eteinte') + ' !'); }).catch(function() { addSystemMessage('ERREUR ESP32 non accessible !'); });
   return;
 }
     modelStore.setInferencing(true);
