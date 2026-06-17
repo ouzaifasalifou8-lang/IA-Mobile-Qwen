@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {NativeModules, PermissionsAndroid} from 'react-native';
+import {NativeModules, PermissionsAndroid, Platform} from 'react-native';
 import {
   TextInput,
   TextInputProps,
