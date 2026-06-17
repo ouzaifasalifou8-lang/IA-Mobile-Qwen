@@ -11,6 +11,9 @@ import {
   Image,
 } from 'react-native';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
+import {pick, types} from '@react-native-documents/picker';
+import * as RNFS from '@dr.pogodin/react-native-fs';
+import {ragStore} from '../../store';
 import {useCameraPermission} from 'react-native-vision-camera';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
@@ -278,6 +281,25 @@ export const ChatInput = observer(
     };
 
     // Handle selecting images from the gallery
+    const handleImportRagDocument = async () => {
+      try {
+        const res = await pick({
+          type: Platform.OS === 'ios' ? 'public.text' : types.allFiles,
+        });
+        const [file] = res;
+        if (file && file.uri) {
+          const content = await RNFS.readFile(file.uri, 'utf8');
+          const fileName = file.name || `doc_${Date.now()}.txt`;
+          await ragStore.addDocument(fileName, content);
+          Alert.alert('Document importe', fileName + ' ajoute a la base de connaissances.');
+        }
+      } catch (error) {
+        console.error('Error importing RAG document:', error);
+      } finally {
+        setShowImageUploadMenu(false);
+      }
+    };
+
     const handleSelectImages = async () => {
       try {
         // Disable auto-release during gallery operation
@@ -490,6 +512,11 @@ export const ChatInput = observer(
                     label={l10n.common?.gallery || 'Gallery'}
                     icon="image"
                     onPress={handleSelectImages}
+                  />
+                  <Menu.Item
+                    label="Importer document (RAG)"
+                    icon="file-document"
+                    onPress={handleImportRagDocument}
                   />
                 </Menu>
               )}
