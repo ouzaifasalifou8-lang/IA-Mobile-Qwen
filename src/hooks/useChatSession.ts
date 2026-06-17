@@ -11,6 +11,7 @@ import {
   chatSessionStore,
   modelStore,
   palStore,
+  ragStore,
   ttsStore,
   uiStore,
 } from '../store';
@@ -475,6 +476,16 @@ export const useChatSession = (
       },
     };
     await addMessage(textMessage);
+
+    // ===== RECHERCHE RAG DOCUMENTS - OUZAIF =====
+    if (ragStore.hasDocuments) {
+      const passages = ragStore.search(message.text, 3);
+      if (passages.length > 0) {
+        const contexte = passages.join('\n---\n');
+        message.text = message.text + '\n\n[Contexte de mes documents: ' + contexte + ']';
+      }
+    }
+    // ===== FIN RECHERCHE RAG =====
 
     // ===== RECHERCHE WEB - OUZAIF =====
     const msgLower = message.text.toLowerCase();
