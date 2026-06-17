@@ -291,7 +291,10 @@ export const ChatInput = observer(
           const content = await RNFS.readFile(file.uri, 'utf8');
           const fileName = file.name || `doc_${Date.now()}.txt`;
           await ragStore.addDocument(fileName, content);
-          Alert.alert('Document importe', fileName + ' ajoute a la base de connaissances.');
+          Alert.alert(
+            'Document importe',
+            fileName + ' ajoute a la base de connaissances.',
+          );
         }
       } catch (error) {
         console.error('Error importing RAG document:', error);
@@ -629,12 +632,12 @@ export const ChatInput = observer(
                 onPress={async () => {
                   try {
                     const granted = await PermissionsAndroid.request(
-                      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+                      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
                     );
                     if (granted === PermissionsAndroid.RESULTS.GRANTED) {
                       const Speech = NativeModules.RNSpeech;
                       if (Speech) {
-                        Speech.startListening('fr-FR', (text) => {
+                        Speech.startListening('fr-FR', text => {
                           setText(text);
                         });
                       }
@@ -646,8 +649,7 @@ export const ChatInput = observer(
                 style={{
                   padding: 8,
                   marginHorizontal: 4,
-                }}
-              >
+                }}>
                 <Text style={{fontSize: 22}}>mic</Text>
               </TouchableOpacity>
 

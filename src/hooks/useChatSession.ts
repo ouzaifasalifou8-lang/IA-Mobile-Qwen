@@ -482,42 +482,73 @@ export const useChatSession = (
       const passages = ragStore.search(message.text, 3);
       if (passages.length > 0) {
         const contexte = passages.join('\n---\n');
-        message.text = message.text + '\n\n[Contexte de mes documents: ' + contexte + ']';
+        message.text =
+          message.text + '\n\n[Contexte de mes documents: ' + contexte + ']';
       }
     }
     // ===== FIN RECHERCHE RAG =====
 
     // ===== RECHERCHE WEB - OUZAIF =====
     const msgLower = message.text.toLowerCase();
-    const webTriggers = ['cherche', 'recherche', 'actualite', 'meteo', 'aujourd', 'recent', 'maintenant', 'qui est', "qu'est-ce", 'derniere nouvelle'];
-    const needsWeb = webTriggers.some(function(t) { return msgLower.includes(t); });
+    const webTriggers = [
+      'cherche',
+      'recherche',
+      'actualite',
+      'meteo',
+      'aujourd',
+      'recent',
+      'maintenant',
+      'qui est',
+      "qu'est-ce",
+      'derniere nouvelle',
+    ];
+    const needsWeb = webTriggers.some(function (t) {
+      return msgLower.includes(t);
+    });
 
     if (needsWeb) {
       addSystemMessage('Recherche en cours...');
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(function() { controller.abort(); }, 5000);
+        const timeoutId = setTimeout(function () {
+          controller.abort();
+        }, 5000);
 
         let resultats = '';
         if (msgLower.includes('meteo')) {
-          const villeMatch = message.text.match(/meteo\s+(?:a|de|pour)?\s*([a-zA-Z]+)/i);
+          const villeMatch = message.text.match(
+            /meteo\s+(?:a|de|pour)?\s*([a-zA-Z]+)/i,
+          );
           const ville = villeMatch ? villeMatch[1] : 'Tahoua';
-          const resp = await fetch('https://wttr.in/' + ville + '?format=%C+%t', {signal: controller.signal});
+          const resp = await fetch(
+            'https://wttr.in/' + ville + '?format=%C+%t',
+            {signal: controller.signal},
+          );
           resultats = await resp.text();
         } else {
-          const resp = await fetch('https://api.duckduckgo.com/?q=' + encodeURIComponent(message.text) + '&format=json&no_html=1', {signal: controller.signal});
+          const resp = await fetch(
+            'https://api.duckduckgo.com/?q=' +
+              encodeURIComponent(message.text) +
+              '&format=json&no_html=1',
+            {signal: controller.signal},
+          );
           const data = await resp.json();
           resultats = data.AbstractText || data.Answer || '';
         }
         clearTimeout(timeoutId);
 
         if (resultats) {
-          message.text = message.text + '\n\n[Info trouvee sur le web: ' + resultats + ']';
+          message.text =
+            message.text + '\n\n[Info trouvee sur le web: ' + resultats + ']';
         } else {
-          addSystemMessage('Aucun resultat web trouve, je reponds avec mes connaissances.');
+          addSystemMessage(
+            'Aucun resultat web trouve, je reponds avec mes connaissances.',
+          );
         }
-      } catch (error) {
-        addSystemMessage('Pas de connexion internet disponible. Je reponds avec mes connaissances.');
+      } catch {
+        addSystemMessage(
+          'Pas de connexion internet disponible. Je reponds avec mes connaissances.',
+        );
       }
     }
     // ===== FIN RECHERCHE WEB =====
@@ -527,10 +558,22 @@ export const useChatSession = (
     const isOn = msg.includes('allume') || msg.includes('active');
     const isOff = msg.includes('eteins') || msg.includes('coupe');
     if (isOn || isOff) {
-      const led = msg.includes('rouge') ? 'rouge' : msg.includes('vert') ? 'verte' : msg.includes('bleu') ? 'bleue' : 'all';
+      const led = msg.includes('rouge')
+        ? 'rouge'
+        : msg.includes('vert')
+          ? 'verte'
+          : msg.includes('bleu')
+            ? 'bleue'
+            : 'all';
       const action = isOn ? 'on' : 'off';
       const url = 'http://' + esp32Ip + '/led/' + action + '?nom=' + led;
-      fetch(url).then(function() { addSystemMessage('OK LED ' + led + ' !'); }).catch(function() { addSystemMessage('ERREUR ESP32 !'); });
+      fetch(url)
+        .then(function () {
+          addSystemMessage('OK LED ' + led + ' !');
+        })
+        .catch(function () {
+          addSystemMessage('ERREUR ESP32 !');
+        });
       return;
     }
     modelStore.setInferencing(true);
