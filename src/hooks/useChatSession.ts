@@ -454,6 +454,16 @@ export const useChatSession = (
       return;
     }
 
+    // OUZAIF: le modele peut etre en cours de rechargement automatique
+    // (ex: apres un retour en arriere-plan). On informe l'utilisateur au
+    // lieu de planter avec une erreur native.
+    if (modelStore.isContextLoading) {
+      await addSystemMessage(
+        'Le modele recharge, patientez quelques secondes puis renvoyez votre message.',
+      );
+      return;
+    }
+
     const imageUris = message.imageUris;
     const hasImages = !!(imageUris && imageUris.length > 0);
 
