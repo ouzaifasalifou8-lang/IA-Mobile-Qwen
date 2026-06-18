@@ -556,8 +556,13 @@ export const useChatSession = (
 
     const esp32Ip = '192.168.1.100';
     const msg = message.text.toLowerCase();
-    const isOn = msg.includes('allume') || msg.includes('active');
-    const isOff = msg.includes('eteins') || msg.includes('coupe');
+    // OUZAIF: n'intercepter QUE si le mot "led" est explicitement present,
+    // sinon une simple question ("active la voix...") declenchait l'ESP32 a tort.
+    const mentionsLed = msg.includes('led');
+    const isOn =
+      mentionsLed && (msg.includes('allume') || msg.includes('active'));
+    const isOff =
+      mentionsLed && (msg.includes('eteins') || msg.includes('coupe'));
     if (isOn || isOff) {
       const led = msg.includes('rouge')
         ? 'rouge'
