@@ -24,6 +24,7 @@ export * from './FileMessage';
 export * from './HeaderRight';
 export * from './HeaderLeft';
 export * from './HFTokenSheet';
+export * from './RagDocumentsSheet';
 export * from './IncreaseContextSheet';
 export * from './GreetingBubble';
 export * from './HtmlPreviewBubble';

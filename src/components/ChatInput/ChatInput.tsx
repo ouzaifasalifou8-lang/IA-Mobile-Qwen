@@ -39,7 +39,7 @@ import {chatSessionStore, modelStore, palStore, uiStore} from '../../store';
 import {MessageType} from '../../utils/types';
 import {L10nContext, UserContext} from '../../utils';
 
-import {SendButton, StopButton, Menu, VoiceChip} from '..';
+import {SendButton, StopButton, Menu, VoiceChip, RagDocumentsSheet} from '..';
 
 export interface ChatInputTopLevelProps {
   /** Whether the AI is currently streaming tokens */
@@ -154,6 +154,7 @@ export const ChatInput = observer(
     // State for image upload menu
     const [showImageUploadMenu, setShowImageUploadMenu] = React.useState(false);
     const [isListening, setIsListening] = React.useState(false);
+    const [showRagDocuments, setShowRagDocuments] = React.useState(false);
 
     // Configuration des listeners Voice (STT) - OUZAIF
     React.useEffect(() => {
@@ -398,328 +399,344 @@ export const ChatInput = observer(
       : onSurfaceColorVariant;
 
     return (
-      <View style={styles.container}>
-        <View style={styles.inputContainer}>
-          {/* Edit Bar (when in edit mode) */}
-          {isEditMode && (
-            <Animated.View
-              style={[
-                styles.editBar,
-                {
-                  height: editBarHeight,
-                },
-              ]}>
-              <Text variant="labelSmall" style={styles.editBarText}>
-                Editing message
-              </Text>
-              <IconButton
-                icon="close"
-                size={16}
-                onPress={handleCancel}
-                style={styles.editBarButton}
-                iconColor={theme.colors.onSurfaceVariant}
-              />
-            </Animated.View>
-          )}
+      <>
+        <View style={styles.container}>
+          <View style={styles.inputContainer}>
+            {/* Edit Bar (when in edit mode) */}
+            {isEditMode && (
+              <Animated.View
+                style={[
+                  styles.editBar,
+                  {
+                    height: editBarHeight,
+                  },
+                ]}>
+                <Text variant="labelSmall" style={styles.editBarText}>
+                  Editing message
+                </Text>
+                <IconButton
+                  icon="close"
+                  size={16}
+                  onPress={handleCancel}
+                  style={styles.editBarButton}
+                  iconColor={theme.colors.onSurfaceVariant}
+                />
+              </Animated.View>
+            )}
 
-          {/* Image Preview Section */}
-          {selectedImages.length > 0 && (
+            {/* Image Preview Section */}
+            {selectedImages.length > 0 && (
+              <View
+                style={[
+                  styles.imagePreviewContainer,
+                  isEditMode && styles.imagePreviewContainerEditMode,
+                ]}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.imageScrollContent}>
+                  {selectedImages.map((uri, index) => (
+                    <View key={`${uri}-${index}`} style={styles.imageContainer}>
+                      <Image
+                        source={{uri}}
+                        style={styles.previewImage}
+                        accessibilityLabel={`Image preview ${index + 1} of ${
+                          selectedImages.length
+                        }`}
+                      />
+                      <IconButton
+                        icon="close-circle"
+                        size={20}
+                        iconColor={theme.colors.error}
+                        style={styles.removeImageButton}
+                        onPress={() => handleRemoveImage(index)}
+                        accessibilityLabel={`Remove image ${index + 1}`}
+                      />
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Text Input Area (Top Row) */}
             <View
               style={[
-                styles.imagePreviewContainer,
-                isEditMode && styles.imagePreviewContainerEditMode,
-              ]}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.imageScrollContent}>
-                {selectedImages.map((uri, index) => (
-                  <View key={`${uri}-${index}`} style={styles.imageContainer}>
-                    <Image
-                      source={{uri}}
-                      style={styles.previewImage}
-                      accessibilityLabel={`Image preview ${index + 1} of ${
-                        selectedImages.length
-                      }`}
-                    />
-                    <IconButton
-                      icon="close-circle"
-                      size={20}
-                      iconColor={theme.colors.error}
-                      style={styles.removeImageButton}
-                      onPress={() => handleRemoveImage(index)}
-                      accessibilityLabel={`Remove image ${index + 1}`}
-                    />
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Text Input Area (Top Row) */}
-          <View
-            style={[
-              styles.textInputArea,
-              {
-                paddingTop: isEditMode
-                  ? selectedImages.length > 0
-                    ? 8 // Reduced padding when images present in edit mode
-                    : 48 // Edit bar height (28px) + normal padding (20px)
-                  : selectedImages.length > 0
-                    ? 0
-                    : 20,
-              },
-            ]}>
-            {/* Subtle Prompt Label for Video Pals */}
-            {isVideoCapable && (
-              <Text
-                variant="labelSmall"
-                style={[styles.promptLabel, {color: onSurfaceColorVariant}]}>
-                {l10n.palsScreen.prompt}:
-              </Text>
-            )}
-            <TextInput
-              ref={inputRef}
-              multiline
-              placeholder={
-                isVideoCapable
-                  ? l10n.video.promptPlaceholder
-                  : l10n.components.chatInput.inputPlaceholder
-              }
-              placeholderTextColor={onSurfaceColorVariant}
-              underlineColorAndroid="transparent"
-              {...textInputProps}
-              style={[
-                styles.input,
-                textInputProps?.style,
+                styles.textInputArea,
                 {
-                  color: onSurfaceColor,
+                  paddingTop: isEditMode
+                    ? selectedImages.length > 0
+                      ? 8 // Reduced padding when images present in edit mode
+                      : 48 // Edit bar height (28px) + normal padding (20px)
+                    : selectedImages.length > 0
+                      ? 0
+                      : 20,
                 },
-                isVideoCapable && styles.inputWithLabel,
-              ]}
-              onChangeText={handleChangeText}
-              value={value}
-              editable={
-                isVideoCapable
-                  ? !isStreaming && !isCameraActive
-                  : textInputProps?.editable !== false
-              }
-              testID="chat-input"
-              accessibilityLabel="Message input"
-            />
-          </View>
-
-          {/* Control Bar (Bottom Row) */}
-          <View style={styles.controlBar}>
-            {/* Left Controls */}
-            <View style={styles.leftControls}>
-              {/* Plus Button for Image Upload (only for regular chat) */}
-              {showImageUpload && !isVideoCapable && (
-                <Menu
-                  visible={showImageUploadMenu}
-                  onDismiss={() => setShowImageUploadMenu(false)}
-                  anchorPosition="top"
-                  anchor={
-                    <TouchableOpacity
-                      style={styles.plusButton}
-                      disabled={!isPlusButtonEnabled}
-                      onPress={
-                        isPlusButtonEnabled ? handlePlusButtonPress : () => {}
-                      }
-                      accessibilityLabel="Add image"
-                      accessibilityRole="button">
-                      <PlusIcon width={20} height={20} stroke={plusColor} />
-                    </TouchableOpacity>
-                  }>
-                  <Menu.Item
-                    label={l10n.camera?.takePhoto || 'Camera'}
-                    icon="camera"
-                    onPress={handleTakePhoto}
-                  />
-                  <Menu.Item
-                    label={l10n.common?.gallery || 'Gallery'}
-                    icon="image"
-                    onPress={handleSelectImages}
-                  />
-                  <Menu.Item
-                    label="Importer document (RAG)"
-                    icon="file-document"
-                    onPress={handleImportRagDocument}
-                  />
-                </Menu>
+              ]}>
+              {/* Subtle Prompt Label for Video Pals */}
+              {isVideoCapable && (
+                <Text
+                  variant="labelSmall"
+                  style={[styles.promptLabel, {color: onSurfaceColorVariant}]}>
+                  {l10n.palsScreen.prompt}:
+                </Text>
               )}
+              <TextInput
+                ref={inputRef}
+                multiline
+                placeholder={
+                  isVideoCapable
+                    ? l10n.video.promptPlaceholder
+                    : l10n.components.chatInput.inputPlaceholder
+                }
+                placeholderTextColor={onSurfaceColorVariant}
+                underlineColorAndroid="transparent"
+                {...textInputProps}
+                style={[
+                  styles.input,
+                  textInputProps?.style,
+                  {
+                    color: onSurfaceColor,
+                  },
+                  isVideoCapable && styles.inputWithLabel,
+                ]}
+                onChangeText={handleChangeText}
+                value={value}
+                editable={
+                  isVideoCapable
+                    ? !isStreaming && !isCameraActive
+                    : textInputProps?.editable !== false
+                }
+                testID="chat-input"
+                accessibilityLabel="Message input"
+              />
+            </View>
 
-              {/* Pal Selector */}
-              <View style={styles.palSelector}>
-                <TouchableOpacity
-                  style={[
-                    styles.palBtn,
-                    {
-                      backgroundColor:
-                        uiStore.colorScheme === 'dark'
-                          ? theme.colors.inverseOnSurface
-                          : theme.colors.inverseSurface,
-                    },
-                    currentActivePal?.color && {
-                      backgroundColor: currentActivePal?.color?.[0],
-                    },
-                  ]}
-                  onPress={onPalBtnPress}
-                  accessibilityLabel="Select Pal"
-                  accessibilityRole="button">
-                  <Animated.View
-                    style={{
-                      transform: [{rotate: rotateInterpolate}],
-                    }}>
-                    <ChevronUpIcon stroke={inputBackgroundColor} />
-                  </Animated.View>
-                </TouchableOpacity>
+            {/* Control Bar (Bottom Row) */}
+            <View style={styles.controlBar}>
+              {/* Left Controls */}
+              <View style={styles.leftControls}>
+                {/* Plus Button for Image Upload (only for regular chat) */}
+                {showImageUpload && !isVideoCapable && (
+                  <Menu
+                    visible={showImageUploadMenu}
+                    onDismiss={() => setShowImageUploadMenu(false)}
+                    anchorPosition="top"
+                    anchor={
+                      <TouchableOpacity
+                        style={styles.plusButton}
+                        disabled={!isPlusButtonEnabled}
+                        onPress={
+                          isPlusButtonEnabled ? handlePlusButtonPress : () => {}
+                        }
+                        accessibilityLabel="Add image"
+                        accessibilityRole="button">
+                        <PlusIcon width={20} height={20} stroke={plusColor} />
+                      </TouchableOpacity>
+                    }>
+                    <Menu.Item
+                      label={l10n.camera?.takePhoto || 'Camera'}
+                      icon="camera"
+                      onPress={handleTakePhoto}
+                    />
+                    <Menu.Item
+                      label={l10n.common?.gallery || 'Gallery'}
+                      icon="image"
+                      onPress={handleSelectImages}
+                    />
+                    <Menu.Item
+                      label="Importer document (RAG)"
+                      icon="file-document"
+                      onPress={handleImportRagDocument}
+                    />
+                    <Menu.Item
+                      label="Mes documents (RAG)"
+                      icon="folder"
+                      onPress={() => {
+                        setShowImageUploadMenu(false);
+                        setShowRagDocuments(true);
+                      }}
+                    />
+                  </Menu>
+                )}
 
-                {/* Pal Name Display */}
-                {currentActivePal?.name && hasActiveModel && (
-                  <Text
+                {/* Pal Selector */}
+                <View style={styles.palSelector}>
+                  <TouchableOpacity
                     style={[
-                      styles.palNameCompact,
+                      styles.palBtn,
                       {
-                        color: onSurfaceColor,
+                        backgroundColor:
+                          uiStore.colorScheme === 'dark'
+                            ? theme.colors.inverseOnSurface
+                            : theme.colors.inverseSurface,
                       },
-                    ]}>
-                    Pal:{' '}
+                      currentActivePal?.color && {
+                        backgroundColor: currentActivePal?.color?.[0],
+                      },
+                    ]}
+                    onPress={onPalBtnPress}
+                    accessibilityLabel="Select Pal"
+                    accessibilityRole="button">
+                    <Animated.View
+                      style={{
+                        transform: [{rotate: rotateInterpolate}],
+                      }}>
+                      <ChevronUpIcon stroke={inputBackgroundColor} />
+                    </Animated.View>
+                  </TouchableOpacity>
+
+                  {/* Pal Name Display */}
+                  {currentActivePal?.name && hasActiveModel && (
                     <Text
                       style={[
-                        styles.palNameValueCompact,
+                        styles.palNameCompact,
                         {
                           color: onSurfaceColor,
                         },
                       ]}>
-                      {currentActivePal?.name}
+                      Pal:{' '}
+                      <Text
+                        style={[
+                          styles.palNameValueCompact,
+                          {
+                            color: onSurfaceColor,
+                          },
+                        ]}>
+                        {currentActivePal?.name}
+                      </Text>
                     </Text>
-                  </Text>
+                  )}
+                </View>
+
+                {/* Thinking Toggle Button */}
+                {showThinkingToggle && !isCameraActive && (
+                  <TouchableOpacity
+                    style={[
+                      styles.thinkingToggleLeft,
+                      isThinkingEnabled && {backgroundColor: onSurfaceColor},
+                      {borderColor: onSurfaceColorVariant},
+                    ]}
+                    onPress={() => onThinkingToggle?.(!isThinkingEnabled)}
+                    accessibilityLabel={
+                      isThinkingEnabled
+                        ? l10n.components.chatInput.thinkingToggle
+                            .disableThinking
+                        : l10n.components.chatInput.thinkingToggle
+                            .enableThinking
+                    }
+                    accessibilityRole="button">
+                    <AtomIcon
+                      width={14}
+                      height={14}
+                      stroke={
+                        isThinkingEnabled
+                          ? inputBackgroundColor
+                          : onSurfaceColorVariant
+                      }
+                      strokeWidth={2}
+                    />
+                    <Text
+                      style={[
+                        styles.thinkingToggleText,
+                        isThinkingEnabled
+                          ? {color: inputBackgroundColor}
+                          : {color: onSurfaceColorVariant},
+                      ]}>
+                      {l10n.components.chatInput.thinkingToggle.thinkText}
+                    </Text>
+                  </TouchableOpacity>
                 )}
               </View>
 
-              {/* Thinking Toggle Button */}
-              {showThinkingToggle && !isCameraActive && (
-                <TouchableOpacity
-                  style={[
-                    styles.thinkingToggleLeft,
-                    isThinkingEnabled && {backgroundColor: onSurfaceColor},
-                    {borderColor: onSurfaceColorVariant},
-                  ]}
-                  onPress={() => onThinkingToggle?.(!isThinkingEnabled)}
-                  accessibilityLabel={
-                    isThinkingEnabled
-                      ? l10n.components.chatInput.thinkingToggle.disableThinking
-                      : l10n.components.chatInput.thinkingToggle.enableThinking
-                  }
-                  accessibilityRole="button">
-                  <AtomIcon
-                    width={14}
-                    height={14}
-                    stroke={
-                      isThinkingEnabled
-                        ? inputBackgroundColor
-                        : onSurfaceColorVariant
-                    }
-                    strokeWidth={2}
-                  />
-                  <Text
-                    style={[
-                      styles.thinkingToggleText,
-                      isThinkingEnabled
-                        ? {color: inputBackgroundColor}
-                        : {color: onSurfaceColorVariant},
-                    ]}>
-                    {l10n.components.chatInput.thinkingToggle.thinkText}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
+              {/* Right Controls */}
+              <View style={styles.rightControls}>
+                {/* Helper text for model not loaded */}
+                {showModelWarning && !hasActiveModel && (
+                  <View style={styles.helperTextContainer}>
+                    <Text variant="bodySmall" style={styles.helperText}>
+                      {l10n.chat.cannotSendWithoutModel}
+                    </Text>
+                  </View>
+                )}
 
-            {/* Right Controls */}
-            <View style={styles.rightControls}>
-              {/* Helper text for model not loaded */}
-              {showModelWarning && !hasActiveModel && (
-                <View style={styles.helperTextContainer}>
-                  <Text variant="bodySmall" style={styles.helperText}>
-                    {l10n.chat.cannotSendWithoutModel}
-                  </Text>
-                </View>
-              )}
-
-              {/* Voice chip (TTS) — always present so users can stop
+                {/* Voice chip (TTS) — always present so users can stop
                   audio independently of text generation. Self-gates:
                   returns null when TTS is unavailable. */}
-              <VoiceChip />
+                <VoiceChip />
 
-              {/* Bouton Micro STT - OUZAIF */}
-              <TouchableOpacity
-                onPress={async () => {
-                  try {
-                    if (isListening) {
-                      await Voice.stop();
-                      setIsListening(false);
-                      return;
-                    }
-                    const granted = await PermissionsAndroid.request(
-                      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-                    );
-                    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-                      await Voice.start('fr-FR');
-                      setIsListening(true);
-                    }
-                  } catch (e) {
-                    console.log('Micro erreur:', e);
-                    setIsListening(false);
-                  }
-                }}
-                accessibilityLabel="Microphone"
-                accessibilityRole="button"
-                style={{
-                  padding: 8,
-                  marginHorizontal: 4,
-                }}>
-                <Text style={{fontSize: 22}}>
-                  {isListening ? '\u{1F534}' : '\u{1F3A4}'}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Send/Stop Button */}
-              {isStopVisible ? (
-                <StopButton color={onSurfaceColor} onPress={onStopPress} />
-              ) : isVideoCapable && !isCameraActive ? (
-                /* Compact Start Video Button for Video Pals */
+                {/* Bouton Micro STT - OUZAIF */}
                 <TouchableOpacity
-                  style={[
-                    styles.compactVideoButton,
-                    {
-                      backgroundColor: onSurfaceColor,
-                    },
-                  ]}
-                  onPress={onStartCamera}
-                  accessibilityLabel="Start video analysis"
-                  accessibilityRole="button">
-                  <VideoRecorderIcon
-                    width={16}
-                    height={16}
-                    stroke="white"
-                    strokeWidth={2}
-                  />
-                  <Text style={styles.compactButtonText}>
-                    {l10n.video.startCamera}
+                  onPress={async () => {
+                    try {
+                      if (isListening) {
+                        await Voice.stop();
+                        setIsListening(false);
+                        return;
+                      }
+                      const granted = await PermissionsAndroid.request(
+                        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+                      );
+                      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+                        await Voice.start('fr-FR');
+                        setIsListening(true);
+                      }
+                    } catch (e) {
+                      console.log('Micro erreur:', e);
+                      setIsListening(false);
+                    }
+                  }}
+                  accessibilityLabel="Microphone"
+                  accessibilityRole="button"
+                  style={{
+                    padding: 8,
+                    marginHorizontal: 4,
+                  }}>
+                  <Text style={{fontSize: 22}}>
+                    {isListening ? '\u{1F534}' : '\u{1F3A4}'}
                   </Text>
                 </TouchableOpacity>
-              ) : (
-                isSendButtonVisible && (
-                  <View style={{opacity: sendButtonOpacity}}>
-                    <SendButton color={onSurfaceColor} onPress={handleSend} />
-                  </View>
-                )
-              )}
+
+                {/* Send/Stop Button */}
+                {isStopVisible ? (
+                  <StopButton color={onSurfaceColor} onPress={onStopPress} />
+                ) : isVideoCapable && !isCameraActive ? (
+                  /* Compact Start Video Button for Video Pals */
+                  <TouchableOpacity
+                    style={[
+                      styles.compactVideoButton,
+                      {
+                        backgroundColor: onSurfaceColor,
+                      },
+                    ]}
+                    onPress={onStartCamera}
+                    accessibilityLabel="Start video analysis"
+                    accessibilityRole="button">
+                    <VideoRecorderIcon
+                      width={16}
+                      height={16}
+                      stroke="white"
+                      strokeWidth={2}
+                    />
+                    <Text style={styles.compactButtonText}>
+                      {l10n.video.startCamera}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  isSendButtonVisible && (
+                    <View style={{opacity: sendButtonOpacity}}>
+                      <SendButton color={onSurfaceColor} onPress={handleSend} />
+                    </View>
+                  )
+                )}
+              </View>
             </View>
           </View>
         </View>
-      </View>
+        <RagDocumentsSheet
+          isVisible={showRagDocuments}
+          onDismiss={() => setShowRagDocuments(false)}
+        />
+      </>
     );
   },
 );
