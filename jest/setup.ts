@@ -163,6 +163,25 @@ jest.mock('react-native-share', () => ({
 
 jest.mock('react-native-image-picker');
 jest.mock('react-native-vision-camera');
+jest.mock('@react-native-voice/voice', () => ({
+  __esModule: true,
+  default: {
+    start: jest.fn().mockResolvedValue(undefined),
+    stop: jest.fn().mockResolvedValue(undefined),
+    cancel: jest.fn().mockResolvedValue(undefined),
+    destroy: jest.fn().mockResolvedValue(undefined),
+    removeAllListeners: jest.fn(),
+    isAvailable: jest.fn().mockResolvedValue(1),
+    isRecognizing: jest.fn().mockResolvedValue(0),
+    onSpeechStart: null,
+    onSpeechRecognized: null,
+    onSpeechEnd: null,
+    onSpeechError: null,
+    onSpeechResults: null,
+    onSpeechPartialResults: null,
+    onSpeechVolumeChanged: null,
+  },
+}));
 
 jest.mock('../src/database', () => {
   return {
