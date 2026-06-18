@@ -512,7 +512,7 @@ export const useChatSession = (
         const controller = new AbortController();
         const timeoutId = setTimeout(function () {
           controller.abort();
-        }, 5000);
+        }, 15000);
 
         let resultats = '';
         if (msgLower.includes('meteo')) {
@@ -545,7 +545,8 @@ export const useChatSession = (
             'Aucun resultat web trouve, je reponds avec mes connaissances.',
           );
         }
-      } catch {
+      } catch (webErr) {
+        console.log('Erreur recherche web OUZAIF:', webErr);
         addSystemMessage(
           'Pas de connexion internet disponible. Je reponds avec mes connaissances.',
         );
