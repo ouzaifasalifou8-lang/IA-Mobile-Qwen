@@ -732,10 +732,12 @@ export const ChatInput = observer(
             </View>
           </View>
         </View>
-        <RagDocumentsSheet
-          isVisible={showRagDocuments}
-          onDismiss={() => setShowRagDocuments(false)}
-        />
+        {showRagDocuments && (
+          <RagDocumentsSheet
+            isVisible={showRagDocuments}
+            onDismiss={() => setShowRagDocuments(false)}
+          />
+        )}
       </>
     );
   },

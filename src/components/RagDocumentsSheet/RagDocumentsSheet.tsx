@@ -3,7 +3,7 @@ import {View, FlatList} from 'react-native';
 import {Text, IconButton} from 'react-native-paper';
 import {observer} from 'mobx-react';
 
-import {Sheet} from '..';
+import {Sheet} from '../Sheet';
 import {useTheme} from '../../hooks';
 import {ragStore} from '../../store';
 import {createStyles} from './styles';

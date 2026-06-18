@@ -50,6 +50,14 @@ jest.mock('../../../store', () => ({
     openSetupSheet: jest.fn(),
     setAutoSpeak: jest.fn(),
   },
+  ragStore: {
+    documents: [],
+    hasDocuments: false,
+    search: jest.fn().mockReturnValue([]),
+    addDocument: jest.fn(),
+    removeDocument: jest.fn(),
+    loadDocuments: jest.fn(),
+  },
 }));
 
 // Mock the icons
