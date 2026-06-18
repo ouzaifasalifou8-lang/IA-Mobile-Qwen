@@ -16,7 +16,7 @@ import * as RNFS from '@dr.pogodin/react-native-fs';
 import {ragStore} from '../../store';
 import {useCameraPermission} from 'react-native-vision-camera';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-import Voice from '@react-native-voice/voice';
+// STT: module micro temporairement desactive (recherche d'une lib compatible en cours)
 
 import {observer} from 'mobx-react';
 import {IconButton, Text} from 'react-native-paper';
@@ -153,29 +153,9 @@ export const ChatInput = observer(
       onDefaultImagesChange ?? setInternalSelectedImages;
     // State for image upload menu
     const [showImageUploadMenu, setShowImageUploadMenu] = React.useState(false);
-    const [isListening, setIsListening] = React.useState(false);
     const [showRagDocuments, setShowRagDocuments] = React.useState(false);
 
-    // Configuration des listeners Voice (STT) - OUZAIF
-    React.useEffect(() => {
-      Voice.onSpeechResults = (event: any) => {
-        const recognized = event?.value?.[0];
-        if (recognized) {
-          setText(recognized);
-        }
-      };
-      Voice.onSpeechError = (event: any) => {
-        console.log('Erreur reconnaissance vocale:', event?.error);
-        setIsListening(false);
-      };
-      Voice.onSpeechEnd = () => {
-        setIsListening(false);
-      };
-
-      return () => {
-        Voice.destroy().then(Voice.removeAllListeners);
-      };
-    }, []);
+    // STT useEffect desactive temporairement (module en cours de remplacement)
     // State for showing "model not loaded" helper text
     const [showModelWarning, setShowModelWarning] = React.useState(false);
     const isEditMode = chatSessionStore.isEditMode;
@@ -666,34 +646,19 @@ export const ChatInput = observer(
 
                 {/* Bouton Micro STT - OUZAIF */}
                 <TouchableOpacity
-                  onPress={async () => {
-                    try {
-                      if (isListening) {
-                        await Voice.stop();
-                        setIsListening(false);
-                        return;
-                      }
-                      const granted = await PermissionsAndroid.request(
-                        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-                      );
-                      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-                        await Voice.start('fr-FR');
-                        setIsListening(true);
-                      }
-                    } catch (e) {
-                      console.log('Micro erreur:', e);
-                      setIsListening(false);
-                    }
-                  }}
+                onPress={() => {
+                  Alert.alert(
+                    'Micro',
+                    'La reconnaissance vocale sera disponible dans une prochaine version.',
+                  );
+                }}
                   accessibilityLabel="Microphone"
                   accessibilityRole="button"
                   style={{
                     padding: 8,
                     marginHorizontal: 4,
                   }}>
-                  <Text style={{fontSize: 22}}>
-                    {isListening ? '\u{1F534}' : '\u{1F3A4}'}
-                  </Text>
+                  <Text style={{fontSize: 22}}>🎤</Text>
                 </TouchableOpacity>
 
                 {/* Send/Stop Button */}
