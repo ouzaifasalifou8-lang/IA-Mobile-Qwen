@@ -457,7 +457,7 @@ describe('input', () => {
     }
   });
 
-  it('disables plus button when vision is not enabled', () => {
+  it('keeps plus button enabled when vision is not enabled (RAG import still available)', () => {
     expect.assertions(1);
     const onSendPress = jest.fn();
     const {getByLabelText} = render(
@@ -474,7 +474,7 @@ describe('input', () => {
     );
 
     const plusButton = getByLabelText('Add image');
-    expect(plusButton.props.accessibilityState.disabled).toBe(true);
+    expect(plusButton.props.accessibilityState.disabled).toBe(false);
   });
 
   it('enables plus button when vision is enabled', () => {
