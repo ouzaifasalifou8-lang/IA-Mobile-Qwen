@@ -23,6 +23,10 @@ describe('ChatScreen', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // OUZAIF: reset isContextLoading entre les tests, sinon il reste
+    // a true depuis le test "renders correctly when model is loading"
+    // et fait planter les tests suivants avec notre message d'attente.
+    modelStore.isContextLoading = false;
     llamaRN = require('llama.rn');
   });
 
