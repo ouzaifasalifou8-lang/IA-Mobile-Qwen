@@ -524,7 +524,6 @@ export const useChatSession = (
           controller.abort();
         }, 15000);
 
-        let resultats = '';
         if (msgLower.includes('meteo')) {
           const villeMatch = message.text.match(
             /meteo\s+(?:a|de|pour)?\s*([a-zA-Z]+)/i,
@@ -534,26 +533,73 @@ export const useChatSession = (
             'https://wttr.in/' + ville + '?format=%C+%t',
             {signal: controller.signal},
           );
-          resultats = await resp.text();
+          const resultats = await resp.text();
+          clearTimeout(timeoutId);
+
+          if (resultats) {
+            message.text =
+              message.text +
+              '\n\n[Info trouvee sur le web (meteo): ' +
+              resultats +
+              ']';
+          } else {
+            addSystemMessage(
+              'Aucun resultat web trouve, je reponds avec mes connaissances.',
+            );
+          }
         } else {
-          const resp = await fetch(
+          // OUZAIF: recherche sur plusieurs sources en parallele (Wikipedia +
+          // DuckDuckGo) pour une synthese plus fiable, chaque source etiquetee
+          // separement afin que le modele puisse distinguer leur origine.
+          const wikiPromise = fetch(
+            'https://fr.wikipedia.org/api/rest_v1/page/summary/' +
+              encodeURIComponent(message.text),
+            {signal: controller.signal},
+          )
+            .then(r => (r.ok ? r.json() : null))
+            .then(d => (d && d.extract ? d.extract : ''))
+            .catch(() => '');
+
+          const ddgPromise = fetch(
             'https://api.duckduckgo.com/?q=' +
               encodeURIComponent(message.text) +
               '&format=json&no_html=1',
             {signal: controller.signal},
-          );
-          const data = await resp.json();
-          resultats = data.AbstractText || data.Answer || '';
-        }
-        clearTimeout(timeoutId);
+          )
+            .then(r => r.json())
+            .then(d => d.AbstractText || d.Answer || '')
+            .catch(() => '');
 
-        if (resultats) {
-          message.text =
-            message.text + '\n\n[Info trouvee sur le web: ' + resultats + ']';
-        } else {
-          addSystemMessage(
-            'Aucun resultat web trouve, je reponds avec mes connaissances.',
-          );
+          const [wikiResult, ddgResult] = await Promise.all([
+            wikiPromise,
+            ddgPromise,
+          ]);
+          clearTimeout(timeoutId);
+
+          const sources: string[] = [];
+          if (wikiResult) {
+            sources.push('Source Wikipedia: ' + wikiResult);
+          }
+          if (ddgResult) {
+            sources.push('Source DuckDuckGo: ' + ddgResult);
+          }
+
+          if (sources.length > 0) {
+            message.text =
+              message.text +
+              '\n\n[Informations trouvees sur le web, ' +
+              sources.length +
+              ' source(s):\n' +
+              sources.join('\n') +
+              '\nConsigne: combine ces informations avec tes connaissances ' +
+              'pour donner une reponse claire et precise. Ne pas inventer ' +
+              "d'informations qui ne sont pas presentes ci-dessus ou dans " +
+              'tes connaissances.]';
+          } else {
+            addSystemMessage(
+              'Aucun resultat web trouve, je reponds avec mes connaissances.',
+            );
+          }
         }
       } catch (webErr) {
         console.log('Erreur recherche web OUZAIF:', webErr);
