@@ -489,6 +489,111 @@ export const useChatSession = (
     };
     await addMessage(textMessage);
 
+    // ===== DETECTION LANGUE & TRADUCTION - OUZAIF =====
+    // Mots-cles caracteristiques du haoussa
+    const haussMots = [
+      'ina',
+      'kana',
+      'tana',
+      'muna',
+      'suna',
+      'yaya',
+      'nawa',
+      'don',
+      'kai',
+      'shi',
+      'ita',
+      'mu',
+      'ku',
+      'su',
+      'ne',
+      'ce',
+      'da',
+      'ba',
+      'wane',
+      'yaushe',
+      'ina',
+      'labari',
+      'lafiya',
+      'yabo',
+      'sannu',
+    ];
+    // Mots-cles caracteristiques du zarma
+    const zarmaMots = [
+      'mate',
+      'mante',
+      'nda',
+      'hano',
+      'bine',
+      'boro',
+      'hay',
+      'wane',
+      'fonda',
+      'gonda',
+      'kaŋ',
+      'nda',
+      'ga',
+      'te',
+      'ni',
+      'i',
+      'iri',
+      'araŋ',
+      'yer',
+      'waati',
+      'tarey',
+      'sohon',
+    ];
+
+    const msgWords = message.text.toLowerCase().split(/\s+/);
+    const isHaoussa = haussMots.some(m => msgWords.includes(m));
+    const isZarma = !isHaoussa && zarmaMots.some(m => msgWords.includes(m));
+    let detectedLang = '';
+
+    if (isHaoussa) {
+      detectedLang = 'haoussa';
+      try {
+        // Traduire le message haoussa -> francais via MyMemory
+        const transResp = await fetch(
+          'https://api.mymemory.translated.net/get?q=' +
+            encodeURIComponent(message.text) +
+            '&langpair=ha|fr',
+        );
+        const transData = await transResp.json();
+        const traduction = transData?.responseData?.translatedText || '';
+        if (traduction && traduction !== message.text) {
+          message.text =
+            message.text +
+            '\n\n[Message original en haoussa. Traduction: ' +
+            traduction +
+            '. Reponds en haoussa. Si tu ne sais pas bien le haoussa, ' +
+            'reponds en francais puis traduis ta reponse en haoussa.]';
+        } else {
+          message.text =
+            message.text +
+            '\n\n[Message en haoussa. Reponds en haoussa. ' +
+            'Si tu ne sais pas bien le haoussa, reponds en francais ' +
+            'puis donne une traduction en haoussa.]';
+        }
+      } catch {
+        message.text =
+          message.text +
+          '\n\n[Message en haoussa. Reponds en haoussa si possible, ' +
+          'sinon en francais.]';
+      }
+    } else if (isZarma) {
+      detectedLang = 'zarma';
+      // MyMemory ne supporte pas le zarma, on utilise juste le prompt
+      message.text =
+        message.text +
+        '\n\n[Message en zarma (langue songhai du Niger). ' +
+        'Essaie de repondre en zarma si tu le connais. ' +
+        'Sinon reponds en francais avec quelques mots en zarma ' +
+        'pour montrer que tu comprends la langue.]';
+    }
+
+    console.log('Langue detectee OUZAIF:', detectedLang || 'autre');
+    // ===== FIN DETECTION LANGUE =====
+
     // ===== ANALYSE D'IMAGE - OUZAIF =====
     // Si le message contient des images, on les envoie a HuggingFace BLIP
     // pour obtenir une description, puis on l'injecte dans le contexte.
