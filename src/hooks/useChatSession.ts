@@ -9,12 +9,14 @@ import {randId} from '../utils';
 import {L10nContext} from '../utils';
 import {
   chatSessionStore,
+  hfStore,
   modelStore,
   palStore,
   ragStore,
   ttsStore,
   uiStore,
 } from '../store';
+import RNFS from '@dr.pogodin/react-native-fs';
 
 import {MessageType, ModelOrigin, User} from '../utils/types';
 import {createMultimodalWarning} from '../utils/errors';
@@ -486,6 +488,59 @@ export const useChatSession = (
       },
     };
     await addMessage(textMessage);
+
+    // ===== ANALYSE D'IMAGE - OUZAIF =====
+    // Si le message contient des images, on les envoie a HuggingFace BLIP
+    // pour obtenir une description, puis on l'injecte dans le contexte.
+    if (imageUris && imageUris.length > 0 && hfStore.hfToken) {
+      try {
+        const descriptions: string[] = [];
+        for (const uri of imageUris) {
+          try {
+            // Lire l'image en base64
+            const cleanUri = uri.startsWith('file://') ? uri.slice(7) : uri;
+            const base64 = await RNFS.readFile(cleanUri, 'base64');
+
+            // Envoyer a HuggingFace BLIP pour description
+            const hfResp = await fetch(
+              'https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base',
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: 'Bearer ' + hfStore.hfToken,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  inputs: {image: base64},
+                }),
+              },
+            );
+            if (hfResp.ok) {
+              const hfData = await hfResp.json();
+              const caption =
+                Array.isArray(hfData) && hfData[0]?.generated_text
+                  ? hfData[0].generated_text
+                  : '';
+              if (caption) {
+                descriptions.push(caption);
+              }
+            }
+          } catch (imgErr) {
+            console.log('Erreur analyse image OUZAIF:', imgErr);
+          }
+        }
+        if (descriptions.length > 0) {
+          message.text =
+            message.text +
+            '\n\n[Description de l image par IA: ' +
+            descriptions.join(', ') +
+            '. Reponds en francais en te basant sur cette description.]';
+        }
+      } catch (analysisErr) {
+        console.log('Erreur bloc analyse image:', analysisErr);
+      }
+    }
+    // ===== FIN ANALYSE D'IMAGE =====
 
     // ===== RECHERCHE RAG DOCUMENTS - OUZAIF =====
     if (ragStore.hasDocuments) {
