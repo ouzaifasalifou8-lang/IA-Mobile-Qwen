@@ -43,6 +43,47 @@ class ESP32Manager {
   private isConnecting = false;
   private shouldReconnect = false;
   private fileChunks: Map<string, string[]> = new Map();
+  private _robotMode = false;
+  private robotMessageHandler: ((msg: ESP32Message) => Promise<string>) | null =
+    null;
+
+  // ===== MODE ROBOT =====
+
+  get robotMode(): boolean {
+    return this._robotMode;
+  }
+
+  // Active le mode robot : l'IA ecoute l'ESP32 ET le chat
+  // onRobotMessage : callback appele quand l'ESP32 envoie un message
+  // Il doit retourner la reponse de l'IA (string)
+  startRobotMode(
+    onRobotMessage: (msg: ESP32Message) => Promise<string>,
+    config?: Partial<ESP32Config>,
+  ) {
+    this._robotMode = true;
+    this.robotMessageHandler = onRobotMessage;
+    console.log('[ESP32] Mode robot ACTIVE');
+    if (!this.isConnected) {
+      this.connect(config);
+    }
+  }
+
+  stopRobotMode() {
+    this._robotMode = false;
+    this.robotMessageHandler = null;
+    console.log('[ESP32] Mode robot DESACTIVE');
+  }
+
+  // Envoie une reponse texte vers l'ESP32 (pour synthese vocale)
+  sendResponse(text: string): boolean {
+    return this._send(
+      JSON.stringify({
+        type: 'text',
+        payload: text,
+        metadata: {isResponse: true},
+      }),
+    );
+  }
 
   // ===== CONNEXION =====
 
@@ -260,6 +301,23 @@ class ESP32Manager {
       }
 
       this.messageHandlers.forEach(h => h(msg));
+
+      // Mode robot : on envoie le message a l'IA et on renvoie la reponse a l'ESP32
+      if (
+        this._robotMode &&
+        this.robotMessageHandler &&
+        msg.type !== 'status'
+      ) {
+        this.robotMessageHandler(msg)
+          .then(response => {
+            if (response) {
+              this.sendResponse(response);
+            }
+          })
+          .catch(err => {
+            console.log('[ESP32] Erreur traitement message robot:', err);
+          });
+      }
     } catch {
       // Message texte brut (non-JSON)
       this.messageHandlers.forEach(h => h({type: 'text', payload: raw}));

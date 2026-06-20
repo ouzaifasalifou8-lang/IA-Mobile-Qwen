@@ -1,4 +1,5 @@
 import React, {useRef, ReactNode, useState} from 'react';
+import {View, TouchableOpacity, Text, StyleSheet} from 'react-native';
 
 import {observer} from 'mobx-react';
 import {runInAction} from 'mobx';
@@ -16,6 +17,7 @@ import {usePendingMessage} from '../../hooks/useDeepLinking';
 import {Pal} from '../../types/pal';
 
 import {modelStore, chatSessionStore, palStore, uiStore} from '../../store';
+import {esp32Manager} from '../../services/esp32';
 import {hasVideoCapability} from '../../utils/pal-capabilities';
 
 import {L10nContext} from '../../utils';
@@ -96,6 +98,54 @@ export const ChatScreen: React.FC = observer(() => {
 
   // Check if multimodal is enabled
   const [multimodalEnabled, setMultimodalEnabled] = React.useState(false);
+
+  // OUZAIF: Mode robot - connexion bidirectionnelle avec l'ESP32
+  const [robotMode, setRobotMode] = useState(false);
+  const [esp32Connected, setEsp32Connected] = useState(false);
+
+  React.useEffect(() => {
+    // Ecouter les changements de connexion ESP32
+    const unsubConn = esp32Manager.onConnectionChange(connected => {
+      setEsp32Connected(connected);
+      if (!connected && robotMode) {
+        setRobotMode(false);
+        esp32Manager.stopRobotMode();
+      }
+    });
+    return () => {
+      unsubConn();
+    };
+  }, [robotMode]);
+
+  const handleToggleRobot = React.useCallback(() => {
+    if (robotMode) {
+      // Desactiver le mode robot
+      esp32Manager.stopRobotMode();
+      esp32Manager.disconnect();
+      setRobotMode(false);
+    } else {
+      // Activer le mode robot
+      setRobotMode(true);
+      esp32Manager.startRobotMode(
+        async msg => {
+          // L'ESP32 envoie un message -> on le traite comme un message chat
+          const text =
+            typeof msg.payload === 'string'
+              ? msg.payload
+              : JSON.stringify(msg.payload);
+          // On simule un envoi de message via handleSendPress
+          await handleSendPress({text, type: 'text'});
+          return ''; // La reponse sera envoyee via useChatSession
+        },
+        {
+          ip: '192.168.1.100',
+          port: 81,
+          reconnectDelay: 3000,
+          pingInterval: 5000,
+        },
+      );
+    }
+  }, [robotMode, handleSendPress]);
 
   React.useEffect(() => {
     const checkMultimodal = async () => {
@@ -211,6 +261,28 @@ export const ChatScreen: React.FC = observer(() => {
   // Otherwise, show the regular chat view
   return (
     <>
+      {/* OUZAIF: Barre de connexion Robot ESP32 */}
+      <TouchableOpacity
+        onPress={handleToggleRobot}
+        style={[
+          robotStyles.bar,
+          robotMode ? robotStyles.barActive : robotStyles.barInactive,
+        ]}>
+        <Text style={robotStyles.icon}>{robotMode ? '🤖' : '🔌'}</Text>
+        <Text style={robotStyles.label}>
+          {robotMode
+            ? esp32Connected
+              ? 'Robot connecte - Tap pour deconnecter'
+              : 'Connexion robot...'
+            : 'Connecter le Robot ESP32'}
+        </Text>
+        <View
+          style={[
+            robotStyles.dot,
+            esp32Connected ? robotStyles.dotGreen : robotStyles.dotRed,
+          ]}
+        />
+      </TouchableOpacity>
       <ChatView
         renderBubble={renderBubble}
         messages={chatSessionStore.currentSessionMessages}
@@ -266,4 +338,42 @@ export const ChatScreen: React.FC = observer(() => {
       )}
     </>
   );
+});
+
+const robotStyles = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginHorizontal: 8,
+    marginTop: 4,
+    borderRadius: 8,
+  },
+  barActive: {
+    backgroundColor: '#1a472a',
+  },
+  barInactive: {
+    backgroundColor: '#2c2c2c',
+  },
+  icon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  label: {
+    flex: 1,
+    color: '#ffffff',
+    fontSize: 13,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  dotGreen: {
+    backgroundColor: '#00ff00',
+  },
+  dotRed: {
+    backgroundColor: '#ff4444',
+  },
 });
