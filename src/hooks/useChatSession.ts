@@ -31,6 +31,7 @@ import {
   CompletionResultSnapshot,
 } from '../utils/completionTypes';
 import {talentRegistry} from '../services/talents';
+import {esp32Manager} from '../services/esp32';
 import type {ToolDefinition} from '../services/talents/types';
 import {
   agentStateReducer,
@@ -770,7 +771,6 @@ export const useChatSession = (
     }
     // ===== FIN RECHERCHE WEB =====
 
-    const esp32Ip = '192.168.1.100';
     const msg = message.text.toLowerCase();
     // OUZAIF: n'intercepter QUE si le mot "led" est explicitement present,
     // sinon une simple question ("active la voix...") declenchait l'ESP32 a tort.
@@ -788,14 +788,22 @@ export const useChatSession = (
             ? 'bleue'
             : 'all';
       const action = isOn ? 'on' : 'off';
-      const url = 'http://' + esp32Ip + '/led/' + action + '?nom=' + led;
-      fetch(url)
-        .then(function () {
-          addSystemMessage('OK LED ' + led + ' !');
-        })
-        .catch(function () {
-          addSystemMessage('ERREUR ESP32 !');
-        });
+      // OUZAIF: WebSocket via esp32Manager (plus rapide que HTTP)
+      const sent = esp32Manager.sendCommand('led', {action, led});
+      if (sent) {
+        addSystemMessage('OK LED ' + led + ' !');
+      } else {
+        // Fallback HTTP si WebSocket non connecte
+        fetch('http://192.168.1.100/led/' + action + '?nom=' + led)
+          .then(function () {
+            addSystemMessage('OK LED ' + led + ' ! (HTTP)');
+          })
+          .catch(function () {
+            addSystemMessage(
+              'ERREUR ESP32 ! (WebSocket et HTTP indisponibles)',
+            );
+          });
+      }
       return;
     }
     modelStore.setInferencing(true);
