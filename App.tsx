@@ -1,3 +1,4 @@
+import { ESP32Controls } from "./src/components/ESP32Controls";
 import * as React from 'react';
 import {Appearance, Dimensions, StyleSheet, View} from 'react-native';
 
@@ -87,6 +88,7 @@ const App = observer(() => {
               <MarkdownProvider>
                 <NavigationContainer>
                   <DeepLinkHandler />
+                  <ESP32Controls />
                   <BottomSheetModalProvider>
                     <Drawer.Navigator
                       screenOptions={{
