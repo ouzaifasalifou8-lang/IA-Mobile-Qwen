@@ -28,7 +28,7 @@ export interface ESP32Config {
 
 const DEFAULT_CONFIG: ESP32Config = {
   ip: '192.168.1.100',
-  port: 81, // Port WebSocket standard pour ESP32
+  port: 80, // Port WebSocket standard pour ESP32
   reconnectDelay: 3000,
   pingInterval: 5000,
 };
