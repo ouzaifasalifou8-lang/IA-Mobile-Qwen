@@ -120,14 +120,13 @@ export const ChatScreen: React.FC = observer(() => {
   const handleToggleRobot = React.useCallback(() => {
     if (robotMode) {
       // Desactiver le mode robot
-      esp32Manager.stopHttpPolling();
       esp32Manager.stopRobotMode();
       esp32Manager.disconnect();
       setRobotMode(false);
     } else {
       // Activer le mode robot
       setRobotMode(true);
-      esp32Manager.startHttpPolling(
+      esp32Manager.startRobotMode(
         async msg => {
           const text =
             typeof msg.payload === 'string'
