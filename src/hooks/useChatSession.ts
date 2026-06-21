@@ -794,7 +794,7 @@ export const useChatSession = (
         addSystemMessage('OK LED ' + led + ' !');
       } else {
         // Fallback HTTP si WebSocket non connecte
-        fetch('http://192.168.1.100/led/' + action + '?nom=' + led)
+        fetch('http://192.168.4.1/led/' + action + '?nom=' + led)
           .then(function () {
             addSystemMessage('OK LED ' + led + ' ! (HTTP)');
           })

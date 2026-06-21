@@ -27,7 +27,7 @@ export interface ESP32Config {
 }
 
 const DEFAULT_CONFIG: ESP32Config = {
-  ip: '192.168.1.100',
+  ip: '192.168.4.1',
   port: 80, // Port WebSocket standard pour ESP32
   reconnectDelay: 3000,
   pingInterval: 5000,
@@ -46,6 +46,60 @@ class ESP32Manager {
   private _robotMode = false;
   private robotMessageHandler: ((msg: ESP32Message) => Promise<string>) | null =
     null;
+
+  private pollingTimer: ReturnType<typeof setInterval> | null = null;
+
+  // ===== POLLING HTTP (quand WebSocket non dispo) =====
+  startHttpPolling(
+    onMessage: (msg: ESP32Message) => Promise<string>,
+    ip = '192.168.4.1',
+    intervalMs = 500,
+  ) {
+    if (this.pollingTimer) clearInterval(this.pollingTimer);
+    console.log('[ESP32] Demarrage polling HTTP vers', ip);
+
+    this.pollingTimer = setInterval(async () => {
+      try {
+        // 1. Recuperer le message en attente sur l'ESP32
+        const ctrl1 = new AbortController();
+        setTimeout(() => ctrl1.abort(), 3000);
+        const resp = await fetch('http://' + ip + '/msg_attente', {
+          signal: ctrl1.signal,
+        });
+        const data = await resp.json();
+
+        if (data.msg && data.msg.length > 0) {
+          console.log('[ESP32] Message recu via polling:', data.msg.slice(0, 50));
+
+          // 2. Traiter le message avec l'IA
+          const msg: ESP32Message = {type: 'text', payload: data.msg};
+          const reponse = await onMessage(msg);
+
+          // 3. Envoyer la reponse a l'ESP32
+          if (reponse) {
+            const ctrl2 = new AbortController();
+            setTimeout(() => ctrl2.abort(), 3000);
+            await fetch('http://' + ip + '/set_reponse', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({reponse}),
+              signal: ctrl2.signal,
+            });
+          }
+        }
+      } catch {
+        // Connexion perdue, on continue silencieusement
+      }
+    }, intervalMs);
+  }
+
+  stopHttpPolling() {
+    if (this.pollingTimer) {
+      clearInterval(this.pollingTimer);
+      this.pollingTimer = null;
+      console.log('[ESP32] Polling HTTP arrete.');
+    }
+  }
 
   // ===== MODE ROBOT =====
 
