@@ -32,7 +32,6 @@ const hausaDictionary: { [key: string]: string } = {
   'abinci': 'nourriture',
   
   // Questions
-  'me': 'quoi',
   'waye': 'qui',
   'ina': 'où',
   'yaushe': 'quand',
