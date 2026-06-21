@@ -102,6 +102,12 @@ export const ChatScreen: React.FC = observer(() => {
 
   // OUZAIF: Mode robot - connexion bidirectionnelle avec l'ESP32
   const [robotMode, setRobotMode] = useState(false);
+  const [translationEnabled, setTranslationEnabled] = useState(false);
+
+  const handleToggleTranslation = React.useCallback(() => {
+    const enabled = translationService.toggleTranslation();
+    setTranslationEnabled(enabled);
+  }, []);
   const [esp32Connected, setEsp32Connected] = useState(false);
 
   React.useEffect(() => {
@@ -136,18 +142,10 @@ export const ChatScreen: React.FC = observer(() => {
           await handleSendPress({text, type: 'text'});
           return '';
         },
-        '192.168.4.1',
-        500,
+        { ip: "192.168.4.1", port: 80, reconnectDelay: 500 },
       );
     }
   }, [robotMode, handleSendPress]);
-  
-  const [translationEnabled, setTranslationEnabled] = useState(false);
-
-  const handleToggleTranslation = React.useCallback(() => {
-    const enabled = translationService.toggleTranslation();
-    setTranslationEnabled(enabled);
-  }, []);
 
   React.useEffect(() => {
     const checkMultimodal = async () => {
@@ -389,4 +387,31 @@ const robotStyles = StyleSheet.create({
   dotRed: {
     backgroundColor: '#ff4444',
   },
+  });
+const styles = StyleSheet.create({
+  translateButton: {
+    backgroundColor: "#1a3a4a",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  translateActive: {
+    backgroundColor: "#1a472a",
+    borderWidth: 1,
+    borderColor: "#00ff88",
+  },
+  translateInactive: {
+    backgroundColor: "#1a3a4a",
+    borderWidth: 1,
+    borderColor: "#333",
+  },
+  translateButtonText: {
+    color: "#00ff88",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
 });
+
