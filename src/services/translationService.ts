@@ -33,7 +33,6 @@ const hausaDictionary: { [key: string]: string } = {
   
   // Questions
   'waye': 'qui',
-  'ina': 'où',
   'yaushe': 'quand',
   'don me': 'pourquoi',
 };
