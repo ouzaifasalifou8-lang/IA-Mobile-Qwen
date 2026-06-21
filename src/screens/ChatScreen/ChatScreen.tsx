@@ -141,6 +141,13 @@ export const ChatScreen: React.FC = observer(() => {
       );
     }
   }, [robotMode, handleSendPress]);
+  
+  const [translationEnabled, setTranslationEnabled] = useState(false);
+
+  const handleToggleTranslation = React.useCallback(() => {
+    const enabled = translationService.toggleTranslation();
+    setTranslationEnabled(enabled);
+  }, []);
 
   React.useEffect(() => {
     const checkMultimodal = async () => {
@@ -277,6 +284,17 @@ export const ChatScreen: React.FC = observer(() => {
             esp32Connected ? robotStyles.dotGreen : robotStyles.dotRed,
           ]}
         />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[
+          styles.translateButton,
+          translationEnabled ? styles.translateActive : styles.translateInactive,
+        ]}
+        onPress={handleToggleTranslation}
+      >
+        <Text style={styles.translateButtonText}>
+          {translationEnabled ? "🌍 HAUSA" : "🌍 Traduire"}
+        </Text>
       </TouchableOpacity>
       <ChatView
         renderBubble={renderBubble}
