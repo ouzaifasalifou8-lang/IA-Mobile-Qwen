@@ -542,6 +542,18 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
               onPress={() => props.navigation.navigate(ROUTES.APP_INFO)}
               style={styles.menuDrawerItem}
             />
+            <Drawer.Item
+              label="API & IA"
+              icon={() => (
+                <SettingsIcon
+                  width={24}
+                  height={24}
+                  stroke={theme.colors.primary}
+                />
+              )}
+              onPress={() => props.navigation.navigate(ROUTES.API_SETTINGS)}
+              style={styles.menuDrawerItem}
+            />
             {/* Only show Dev Tools in debug mode */}
             {isDebugMode && (
               <Drawer.Item

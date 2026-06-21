@@ -41,6 +41,7 @@ import {
   SettingsScreen,
   BenchmarkScreen,
   AboutScreen,
+  ApiSettingsScreen,
 
   // Dev tools screen. Only available in debug mode.
   DevToolsScreen,
@@ -150,6 +151,14 @@ const App = observer(() => {
                         options={{
                           headerStyle: styles.headerWithoutDivider,
                           title: currentL10n.screenTitles.appInfo,
+                        }}
+                      />
+                      <Drawer.Screen
+                        name={ROUTES.API_SETTINGS}
+                        component={gestureHandlerRootHOC(ApiSettingsScreen)}
+                        options={{
+                          headerStyle: styles.headerWithoutDivider,
+                          title: 'API & IA',
                         }}
                       />
 
