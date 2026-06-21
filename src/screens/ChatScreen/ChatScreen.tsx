@@ -120,29 +120,24 @@ export const ChatScreen: React.FC = observer(() => {
   const handleToggleRobot = React.useCallback(() => {
     if (robotMode) {
       // Desactiver le mode robot
+      esp32Manager.stopHttpPolling();
       esp32Manager.stopRobotMode();
       esp32Manager.disconnect();
       setRobotMode(false);
     } else {
       // Activer le mode robot
       setRobotMode(true);
-      esp32Manager.startRobotMode(
+      esp32Manager.startHttpPolling(
         async msg => {
-          // L'ESP32 envoie un message -> on le traite comme un message chat
           const text =
             typeof msg.payload === 'string'
               ? msg.payload
               : JSON.stringify(msg.payload);
-          // On simule un envoi de message via handleSendPress
           await handleSendPress({text, type: 'text'});
-          return ''; // La reponse sera envoyee via useChatSession
+          return '';
         },
-        {
-          ip: '192.168.1.100',
-          port: 81,
-          reconnectDelay: 3000,
-          pingInterval: 5000,
-        },
+        '192.168.4.1',
+        500,
       );
     }
   }, [robotMode, handleSendPress]);
