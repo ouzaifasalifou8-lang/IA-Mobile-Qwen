@@ -1,3 +1,4 @@
+import { translationService } from "../../services/translationService";
 import React, {useRef, ReactNode, useState} from 'react';
 import {View, TouchableOpacity, Text, StyleSheet} from 'react-native';
 
