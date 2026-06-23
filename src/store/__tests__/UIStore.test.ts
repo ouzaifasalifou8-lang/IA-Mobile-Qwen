@@ -108,6 +108,7 @@ describe('UIStore', () => {
         'uk',
         'zh',
         'zh_Hant',
+        'ha',
       ]);
     });
   });

@@ -48,6 +48,7 @@ const ALL_LANGUAGES: AvailableLanguage[] = [
   'uk',
   'zh',
   'zh_Hant',
+  'ha',
 ];
 
 describe('l10n object', () => {
