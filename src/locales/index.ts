@@ -20,6 +20,7 @@ const languageRegistry = {
   uk: {displayName: 'Українська (UK)'},
   zh: {displayName: '中文 (ZH)'},
   zh_Hant: {displayName: '繁體中文 (ZH_HANT)'},
+  ha: {displayName: 'Hausa (HA)'},
 } as const;
 
 export type AvailableLanguage = keyof typeof languageRegistry;
@@ -39,6 +40,7 @@ export const languageDisplayNames: Record<AvailableLanguage, string> = {
   uk: languageRegistry.uk.displayName,
   zh: languageRegistry.zh.displayName,
   zh_Hant: languageRegistry.zh_Hant.displayName,
+  ha: languageRegistry.ha.displayName,
 };
 
 // ─── Lazy Loading ────────────────────────────────────────────────────
@@ -49,6 +51,8 @@ const cache: Partial<Record<AvailableLanguage, Translations>> = {
 // Metro bundles these at build time, but JS doesn't parse them until require() is called
 function requireLanguageData(lang: AvailableLanguage): object | null {
   switch (lang) {
+    case 'ha':
+      return require('./ha.json');
     case 'fa':
       return require('./fa.json');
     case 'he':
@@ -162,6 +166,7 @@ export const initLocale = (locale?: AvailableLanguage) => {
     uk: require('dayjs/locale/uk'),
     zh: require('dayjs/locale/zh'),
     zh_Hant: require('dayjs/locale/zh-tw'),
+    ha: require('dayjs/locale/en'),
   };
 
   locale ? locales[locale] : locales.en;

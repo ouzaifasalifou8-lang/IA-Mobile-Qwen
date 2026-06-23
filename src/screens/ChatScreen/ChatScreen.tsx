@@ -1,4 +1,4 @@
-import { translationService } from "../../services/translationService";
+import { translationService } from '../../services/translationService';
 import React, {useRef, ReactNode, useState} from 'react';
 import {View, TouchableOpacity, Text, StyleSheet} from 'react-native';
 
@@ -18,7 +18,6 @@ import {usePendingMessage} from '../../hooks/useDeepLinking';
 import {Pal} from '../../types/pal';
 
 import {modelStore, chatSessionStore, palStore, uiStore} from '../../store';
-import {esp32Manager} from '../../services/esp32';
 import {hasVideoCapability} from '../../utils/pal-capabilities';
 
 import {L10nContext} from '../../utils';
@@ -100,61 +99,22 @@ export const ChatScreen: React.FC = observer(() => {
   // Check if multimodal is enabled
   const [multimodalEnabled, setMultimodalEnabled] = React.useState(false);
 
-  // OUZAIF: Mode robot - connexion bidirectionnelle avec l'ESP32
-  const [robotMode, setRobotMode] = useState(false);
   const [translationEnabled, setTranslationEnabled] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
 
   const handleToggleTranslation = React.useCallback(() => {
     const enabled = translationService.toggleTranslation();
     setTranslationEnabled(enabled);
   }, []);
-  const [esp32Connected, setEsp32Connected] = useState(false);
 
-  React.useEffect(() => {
-    // Ecouter les changements de connexion ESP32
-    const unsubConn = esp32Manager.onConnectionChange(connected => {
-      setEsp32Connected(connected);
-      if (!connected && robotMode) {
-        setRobotMode(false);
-        esp32Manager.stopRobotMode();
-      }
-    });
-    return () => {
-      unsubConn();
-    };
-  }, [robotMode]);
-
-  const handleToggleRobot = React.useCallback(() => {
-    if (robotMode) {
-      // Desactiver le mode robot
-      esp32Manager.stopRobotMode();
-      esp32Manager.disconnect();
-      setRobotMode(false);
+  const handleSendWithTranslation = React.useCallback((message: MessageType.PartialText) => {
+    if (translationEnabled) {
+      setIsTranslating(true);
+      handleSendPress(message).finally(() => setIsTranslating(false));
     } else {
-      // Activer le mode robot
-      setRobotMode(true);
-      esp32Manager.startRobotMode(
-        async msg => {
-          const text =
-            typeof msg.payload === 'string'
-              ? msg.payload
-              : JSON.stringify(msg.payload);
-          await handleSendPress({text, type: 'text'});
-          return '';
-        },
-        { ip: "192.168.4.1", port: 80, reconnectDelay: 500 },
-      );
+      handleSendPress(message);
     }
-  }, [robotMode, handleSendPress]);
-
-  React.useEffect(() => {
-    const checkMultimodal = async () => {
-      const enabled = await isMultimodalEnabled();
-      setMultimodalEnabled(enabled);
-    };
-
-    checkMultimodal();
-  }, [isMultimodalEnabled]);
+  }, [translationEnabled, handleSendPress]);
 
   const thinkingSupported = modelStore.activeModel?.supportsThinking ?? false;
 
@@ -261,28 +221,6 @@ export const ChatScreen: React.FC = observer(() => {
   // Otherwise, show the regular chat view
   return (
     <>
-      {/* OUZAIF: Barre de connexion Robot ESP32 */}
-      <TouchableOpacity
-        onPress={handleToggleRobot}
-        style={[
-          robotStyles.bar,
-          robotMode ? robotStyles.barActive : robotStyles.barInactive,
-        ]}>
-        <Text style={robotStyles.icon}>{robotMode ? '🤖' : '🔌'}</Text>
-        <Text style={robotStyles.label}>
-          {robotMode
-            ? esp32Connected
-              ? 'Robot connecte - Tap pour deconnecter'
-              : 'Connexion robot...'
-            : 'Connecter le Robot ESP32'}
-        </Text>
-        <View
-          style={[
-            robotStyles.dot,
-            esp32Connected ? robotStyles.dotGreen : robotStyles.dotRed,
-          ]}
-        />
-      </TouchableOpacity>
       <TouchableOpacity
         style={[
           styles.translateButton,
@@ -291,14 +229,14 @@ export const ChatScreen: React.FC = observer(() => {
         onPress={handleToggleTranslation}
       >
         <Text style={styles.translateButtonText}>
-          {translationEnabled ? "🌍 HAUSA" : "🌍 Traduire"}
+          {isTranslating ? "⏳ Traduction..." : translationEnabled ? "🌍 HAUSA ✓" : "🌍 Traduire"}
         </Text>
       </TouchableOpacity>
       <ChatView
         renderBubble={renderBubble}
         messages={chatSessionStore.currentSessionMessages}
         activePal={activePal}
-        onSendPress={handleSendPress}
+        onSendPress={handleSendWithTranslation}
         onStopPress={handleStopPress}
         onPalSettingsSelect={handleOpenPalSheet}
         user={user}
@@ -351,43 +289,6 @@ export const ChatScreen: React.FC = observer(() => {
   );
 });
 
-const robotStyles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginHorizontal: 8,
-    marginTop: 4,
-    borderRadius: 8,
-  },
-  barActive: {
-    backgroundColor: '#1a472a',
-  },
-  barInactive: {
-    backgroundColor: '#2c2c2c',
-  },
-  icon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  label: {
-    flex: 1,
-    color: '#ffffff',
-    fontSize: 13,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  dotGreen: {
-    backgroundColor: '#00ff00',
-  },
-  dotRed: {
-    backgroundColor: '#ff4444',
-  },
-  });
 const styles = StyleSheet.create({
   translateButton: {
     backgroundColor: "#1a3a4a",
@@ -414,4 +315,3 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
-

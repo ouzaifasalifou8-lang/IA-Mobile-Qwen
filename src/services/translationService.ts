@@ -1,139 +1,77 @@
 import axios from 'axios';
 
-// Dictionnaire de traduction Hausa <-> Français (hors ligne)
-// Utile pour les mots courants en attendant l'API
 const hausaDictionary: { [key: string]: string } = {
-  // Mots courants
-  'san ka': 'bonjour',
-  'sannu': 'bonjour',
-  'yaya': 'comment',
-  'kai': 'tu',
-  'ni': 'je',
-  'mu': 'nous',
-  'su': 'ils',
-  'ku': 'vous',
-  'shi': 'il',
-  'ita': 'elle',
-  'muna': 'nous sommes',
-  'kana': 'tu es',
-  'ina': 'je suis',
-  'suna': 'ils sont',
-  
-  // Phrases courantes
-  'yaya kake': 'comment vas-tu',
-  'ina jin': 'je pense',
-  'ina so': 'je veux',
-  'muna so': 'nous voulons',
-  'ya fi': 'c\'est mieux',
-  'mai kyau': 'bon',
-  'mugun': 'mauvais',
-  'gida': 'maison',
-  'ruwa': 'eau',
-  'abinci': 'nourriture',
-  
-  // Questions
-  'waye': 'qui',
-  'yaushe': 'quand',
-  'don me': 'pourquoi',
+  'bonjour': 'sannu',
+  'merci': 'na gode',
+  'oui': 'eh',
+  'non': "a'a",
+  'comment': 'yaya',
+  'pourquoi': 'don me',
+  'quand': 'yaushe',
+  'eau': 'ruwa',
+  'nourriture': 'abinci',
+  'maison': 'gida',
+  'je': 'ni',
+  'tu': 'kai',
+  'il': 'shi',
+  'elle': 'ita',
+  'nous': 'mu',
+  'vous': 'ku',
 };
 
 class TranslationService {
   private translateEnabled = false;
-  private sourceLang = 'ha'; // Hausa
-  private targetLang = 'fr'; // Français par défaut
+  isEnabled = false;
 
-  // Basculer le mode traduction
   toggleTranslation(): boolean {
     this.translateEnabled = !this.translateEnabled;
-    console.log('Traduction:', this.translateEnabled ? 'ACTIVÉE' : 'DÉSACTIVÉE');
+    this.isEnabled = this.translateEnabled;
     return this.translateEnabled;
   }
 
-  get isEnabled(): boolean {
+  isTranslationEnabled(): boolean {
     return this.translateEnabled;
   }
 
-  // Traduire du Hausa vers le Français/Anglais
   async translateToFrench(text: string): Promise<string> {
-    if (!this.translateEnabled || !text) return text;
-    
+    if (!text) return text;
     try {
-      // Essayer d'abord le dictionnaire local
-      const translated = this.translateWithDictionary(text);
-      if (translated !== text) {
-        return translated;
-      }
-      
-      // Sinon, utiliser l'API Google Translate (gratuit)
-      return await this.translateWithGoogle(text, 'ha', 'fr');
-    } catch (error) {
-      console.error('Erreur traduction:', error);
+      const resp = await fetch(
+        'https://api.mymemory.translated.net/get?q=' +
+          encodeURIComponent(text) + '&langpair=ha|fr',
+      );
+      const data = await resp.json();
+      return data?.responseData?.translatedText || text;
+    } catch {
       return text;
     }
   }
 
-  // Traduire du Français/Anglais vers le Hausa
   async translateToHausa(text: string): Promise<string> {
-    if (!this.translateEnabled || !text) return text;
-    
+    if (!text) return text;
     try {
-      return await this.translateWithGoogle(text, 'fr', 'ha');
-    } catch (error) {
-      console.error('Erreur traduction:', error);
+      const resp = await fetch(
+        'https://api.mymemory.translated.net/get?q=' +
+          encodeURIComponent(text.slice(0, 500)) + '&langpair=fr|ha',
+      );
+      const data = await resp.json();
+      return data?.responseData?.translatedText || text;
+    } catch {
       return text;
     }
   }
 
-  // Traduction avec dictionnaire local
-  private translateWithDictionary(text: string): string {
+  translateToHausaSync(text: string): string {
+    if (!this.translateEnabled || !text) return text;
     let result = text;
     const lowerText = text.toLowerCase();
-    
-    // Vérifier les mots/phrases du dictionnaire
-    for (const [ha, fr] of Object.entries(hausaDictionary)) {
-      if (lowerText.includes(ha)) {
-        result = result.replace(new RegExp(ha, 'gi'), fr);
+    for (const [fr, ha] of Object.entries(hausaDictionary)) {
+      if (lowerText.includes(fr)) {
+        const regex = new RegExp(fr, 'gi');
+        result = result.replace(regex, ha);
       }
     }
-    
     return result;
-  }
-
-  // Traduction avec Google Translate API (gratuit)
-  private async translateWithGoogle(
-    text: string,
-    from: string,
-    to: string
-  ): Promise<string> {
-    try {
-      // Utiliser l'API Google Translate gratuite (limité)
-      const response = await axios.get(
-        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${from}&tl=${to}&dt=t&q=${encodeURIComponent(text)}`
-      );
-      
-      if (response.data && response.data[0]) {
-        let translated = '';
-        for (const part of response.data[0]) {
-          translated += part[0];
-        }
-        return translated || text;
-      }
-      return text;
-    } catch (error) {
-      console.error('Erreur API Google:', error);
-      return text;
-    }
-  }
-
-  // Traduire un message complet (détection automatique)
-  async translateMessage(text: string, toLang: 'fr' | 'ha'): Promise<string> {
-    if (!this.translateEnabled) return text;
-    
-    if (toLang === 'fr') {
-      return this.translateToFrench(text);
-    } else {
-      return this.translateToHausa(text);
-    }
   }
 }
 
