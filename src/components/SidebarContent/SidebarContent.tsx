@@ -554,10 +554,6 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
               onPress={() => props.navigation.navigate(ROUTES.API_SETTINGS)}
               style={styles.menuDrawerItem}
                 />
-              )}
-              onPress={() => props.navigation.navigate(ROUTES.API_SETTINGS)}
-              style={styles.menuDrawerItem}
-            />
             {/* Only show Dev Tools in debug mode */}
             {isDebugMode && (
               <Drawer.Item
