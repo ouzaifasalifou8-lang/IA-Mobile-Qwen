@@ -395,6 +395,27 @@ async function applyEventToStore(
       } catch (ttsErr) {
         console.warn('[useChatSession] TTS complete hook failed:', ttsErr);
       }
+
+      // OUZAIF: Traduire la réponse en Haoussa si message original était en haoussa
+      if (detectedLangRef.current === 'haoussa' && finalResult.text) {
+        try {
+          const transResp = await fetch(
+            'https://api.mymemory.translated.net/get?q=' +
+              encodeURIComponent(finalResult.text.slice(0, 500)) +
+              '&langpair=fr|ha',
+          );
+          const transData = await transResp.json();
+          const traduction = transData?.responseData?.translatedText || '';
+          if (traduction && traduction !== finalResult.text) {
+            await chatSessionStore.updateMessage(ctx.messageId, ctx.sessionId, {
+              metadata: {copyable: true},
+            });
+          }
+        } catch (e) {
+          console.warn('[OUZAIF] Traduction retour échouée:', e);
+        }
+        detectedLangRef.current = '';
+      }
       return;
     }
     case 'run_failed':
@@ -406,6 +427,9 @@ async function applyEventToStore(
     }
   }
 }
+
+// OUZAIF: ref module-level pour partager la langue détectée
+const detectedLangRef = { current: '' };
 
 export const useChatSession = (
   currentMessageInfo: React.MutableRefObject<{
@@ -593,6 +617,7 @@ export const useChatSession = (
     }
 
     console.log('Langue detectee OUZAIF:', detectedLang || 'autre');
+    detectedLangRef.current = detectedLang;
     // ===== FIN DETECTION LANGUE =====
 
     // ===== ANALYSE D'IMAGE - OUZAIF =====
