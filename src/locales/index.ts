@@ -11,6 +11,7 @@ import type {Translations} from './types';
 const languageRegistry = {
   en: {displayName: 'English (EN)'},
   fa: {displayName: 'فارسی (FA)'},
+  ha: {displayName: 'Hausa (HA)'},
   he: {displayName: 'עברית (HE)'},
   id: {displayName: 'Indonesia (ID)'},
   ja: {displayName: '日本語 (JA)'},
@@ -20,7 +21,6 @@ const languageRegistry = {
   uk: {displayName: 'Українська (UK)'},
   zh: {displayName: '中文 (ZH)'},
   zh_Hant: {displayName: '繁體中文 (ZH_HANT)'},
-  ha: {displayName: 'Hausa (HA)'},
 } as const;
 
 export type AvailableLanguage = keyof typeof languageRegistry;
@@ -31,6 +31,7 @@ export const supportedLanguages = Object.keys(
 export const languageDisplayNames: Record<AvailableLanguage, string> = {
   en: languageRegistry.en.displayName,
   fa: languageRegistry.fa.displayName,
+  ha: languageRegistry.ha.displayName,
   he: languageRegistry.he.displayName,
   id: languageRegistry.id.displayName,
   ja: languageRegistry.ja.displayName,
@@ -40,7 +41,6 @@ export const languageDisplayNames: Record<AvailableLanguage, string> = {
   uk: languageRegistry.uk.displayName,
   zh: languageRegistry.zh.displayName,
   zh_Hant: languageRegistry.zh_Hant.displayName,
-  ha: languageRegistry.ha.displayName,
 };
 
 // ─── Lazy Loading ────────────────────────────────────────────────────
@@ -104,6 +104,9 @@ export const l10n = {
   },
   get fa(): Translations {
     return getTranslations('fa');
+  },
+  get ha(): Translations {
+    return getTranslations('ha');
   },
   get he(): Translations {
     return getTranslations('he');

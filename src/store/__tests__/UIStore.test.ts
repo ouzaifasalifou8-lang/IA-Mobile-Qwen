@@ -99,6 +99,7 @@ describe('UIStore', () => {
       expect(uiStore.supportedLanguages).toEqual([
         'en',
         'fa',
+        'ha',
         'he',
         'id',
         'ja',
@@ -108,7 +109,6 @@ describe('UIStore', () => {
         'uk',
         'zh',
         'zh_Hant',
-        'ha',
       ]);
     });
   });

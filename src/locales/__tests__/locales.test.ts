@@ -39,6 +39,7 @@ const EXPECTED_SECTIONS = [
 const ALL_LANGUAGES: AvailableLanguage[] = [
   'en',
   'fa',
+  'ha',
   'he',
   'id',
   'ja',
@@ -48,7 +49,6 @@ const ALL_LANGUAGES: AvailableLanguage[] = [
   'uk',
   'zh',
   'zh_Hant',
-  'ha',
 ];
 
 describe('l10n object', () => {
@@ -78,7 +78,8 @@ describe('l10n object', () => {
 
   it.each([
     'fa',
-    'he',
+    'ha',
+  'he',
     'id',
     'ja',
     'ko',
@@ -98,7 +99,8 @@ describe('l10n object', () => {
 
   it.each([
     'fa',
-    'he',
+    'ha',
+  'he',
     'id',
     'ja',
     'ko',
@@ -256,7 +258,8 @@ describe('lazy loading', () => {
 
   it.each([
     'fa',
-    'he',
+    'ha',
+  'he',
     'id',
     'ja',
     'ko',
@@ -314,7 +317,8 @@ describe('type safety', () => {
     const keys: Array<keyof typeof l10n> = [
       'en',
       'fa',
-      'he',
+      'ha',
+  'he',
       'id',
       'ja',
       'ko',
