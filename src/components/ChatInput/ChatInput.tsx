@@ -16,7 +16,9 @@ import * as RNFS from '@dr.pogodin/react-native-fs';
 import {ragStore} from '../../store';
 import {useCameraPermission} from 'react-native-vision-camera';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-// STT: module micro temporairement desactive (recherche d'une lib compatible en cours)
+// STT: reconnaissance vocale via react-native-voice
+import {voiceService} from '../../services/voiceService';
+import {useState} from 'react';
 
 import {observer} from 'mobx-react';
 import {IconButton, Text} from 'react-native-paper';
@@ -646,11 +648,30 @@ export const ChatInput = observer(
 
                 {/* Bouton Micro STT - OUZAIF */}
                 <TouchableOpacity
-                onPress={() => {
-                  Alert.alert(
-                    'Micro',
-                    'La reconnaissance vocale sera disponible dans une prochaine version.',
-                  );
+                onPress={async () => {
+                  if (voiceService.getIsListening()) {
+                    await voiceService.stopListening();
+                  } else {
+                    if (Platform.OS === 'android') {
+                      const granted = await PermissionsAndroid.request(
+                        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+                        {title: 'Microphone', message: 'Autoriser le micro pour parler a l\'IA', buttonPositive: 'OK'},
+                      );
+                      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                        Alert.alert('Permission refusee', 'Le micro est necessaire pour la reconnaissance vocale.');
+                        return;
+                      }
+                    }
+                    voiceService.startListening(
+                      'ha-NE',
+                      (text) => {
+                        // Injecter le texte reconnu dans l'input
+                        setText(text);
+                        textInputProps?.onChangeText?.(text);
+                      },
+                      (error) => Alert.alert('Erreur micro', error),
+                    );
+                  }
                 }}
                   accessibilityLabel="Microphone"
                   accessibilityRole="button"
@@ -658,7 +679,7 @@ export const ChatInput = observer(
                     padding: 8,
                     marginHorizontal: 4,
                   }}>
-                  <Text style={{fontSize: 22}}>🎤</Text>
+                  <Text style={{fontSize: 22}}>{voiceService.getIsListening() ? '🔴' : '🎤'}</Text>
                 </TouchableOpacity>
 
                 {/* Send/Stop Button */}
