@@ -7,7 +7,12 @@ export type ApiProvider =
   | 'groq'
   | 'mistral'
   | 'together'
-  | 'custom';
+  | 'cohere'
+  | 'openrouter'
+  | 'ollama'
+  | 'lmstudio'
+  | 'custom'
+  | string; // Support n'importe quel provider
 
 export type ChatMode = 'local' | 'api' | 'hybrid';
 
@@ -56,14 +61,49 @@ const PROVIDER_DEFAULTS: Record<ApiProvider, Omit<ApiConfig, 'apiKey'>> = {
     model: 'custom-model',
     label: 'API Personnalisee',
   },
+  cohere: {
+    provider: 'cohere',
+    baseUrl: 'https://api.cohere.ai/compatibility/v1',
+    model: 'command-r-plus',
+    label: 'Cohere',
+  },
+  openrouter: {
+    provider: 'openrouter',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: 'openai/gpt-4o-mini',
+    label: 'OpenRouter (200+ modeles)',
+  },
+  ollama: {
+    provider: 'ollama',
+    baseUrl: 'http://localhost:11434/v1',
+    model: 'llama3',
+    label: 'Ollama (Local PC)',
+  },
+  lmstudio: {
+    provider: 'lmstudio',
+    baseUrl: 'http://localhost:1234/v1',
+    model: 'local-model',
+    label: 'LM Studio (Local PC)',
+  },
 };
 
 const KEYCHAIN_SERVICE = 'ouzaif_api_keys';
+
+// Providers dynamiques ajoutés par l'utilisateur
+export interface CustomProviderConfig {
+  id: string;
+  label: string;
+  baseUrl: string;
+  model: string;
+  apiKeyRequired: boolean;
+  format: 'openai' | 'anthropic' | 'auto';
+}
 
 class ApiStore {
   chatMode: ChatMode = 'local';
   selectedProvider: ApiProvider = 'openai';
   configs: Partial<Record<ApiProvider, ApiConfig>> = {};
+  customProviders: CustomProviderConfig[] = [];
   customBaseUrl = '';
   customModel = '';
   isLoading = false;
@@ -179,10 +219,23 @@ class ApiStore {
       throw new Error('Aucune API configuree');
     }
 
-    if (config.provider === 'anthropic') {
+    const format = this.detectFormat(config.provider);
+    if (format === 'anthropic') {
       return this._sendToAnthropic(config, messages, onChunk);
     }
     return this._sendOpenAICompatible(config, messages, onChunk);
+  }
+
+  private detectFormat(provider: ApiProvider): 'openai' | 'anthropic' {
+    if (provider === 'anthropic') return 'anthropic';
+    const custom = this.customProviders.find(p => p.id === provider);
+    if (custom?.format === 'anthropic') return 'anthropic';
+    if (custom?.format === 'auto') {
+      // Auto-détection basée sur l'URL
+      const url = this.configs[provider]?.baseUrl || '';
+      if (url.includes('anthropic')) return 'anthropic';
+    }
+    return 'openai';
   }
 
   private async _sendOpenAICompatible(
@@ -330,12 +383,33 @@ class ApiStore {
     }
   }
 
-  getProviderDefaults(provider: ApiProvider) {
-    return PROVIDER_DEFAULTS[provider];
+  addCustomProvider(config: CustomProviderConfig) {
+    const existing = this.customProviders.findIndex(p => p.id === config.id);
+    if (existing >= 0) {
+      this.customProviders[existing] = config;
+    } else {
+      this.customProviders.push(config);
+    }
+  }
+
+  removeCustomProvider(id: string) {
+    this.customProviders = this.customProviders.filter(p => p.id !== id);
+    delete this.configs[id];
   }
 
   getAllProviders() {
-    return Object.values(PROVIDER_DEFAULTS);
+    const builtIn = Object.values(PROVIDER_DEFAULTS);
+    const custom = this.customProviders.map(p => ({
+      provider: p.id,
+      baseUrl: p.baseUrl,
+      model: p.model,
+      label: p.label,
+    }));
+    return [...builtIn, ...custom];
+  }
+
+  getProviderDefaults(provider: ApiProvider) {
+    return PROVIDER_DEFAULTS[provider];
   }
 }
 

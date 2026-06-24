@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import {Text} from 'react-native-paper';
 import {observer} from 'mobx-react';
-import {apiStore, ApiProvider, ChatMode} from '../../store';
+import {apiStore, ApiProvider, ChatMode, CustomProviderConfig} from '../../store';
 import {useTheme} from '../../hooks';
 
 const PROVIDERS: {id: ApiProvider; label: string; url: string}[] = [
@@ -48,6 +48,11 @@ export const ApiSettingsScreen: React.FC = observer(() => {
   const [testResult, setTestResult] = useState('');
   const [models, setModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
+  const [showAddProvider, setShowAddProvider] = useState(false);
+  const [newProviderLabel, setNewProviderLabel] = useState('');
+  const [newProviderUrl, setNewProviderUrl] = useState('');
+  const [newProviderModel, setNewProviderModel] = useState('');
+  const [newProviderFormat, setNewProviderFormat] = useState<'openai' | 'anthropic' | 'auto'>('auto');
   const currentMode = apiStore.chatMode;
 
   const handleSelectProvider = (p: ApiProvider) => {
@@ -92,6 +97,29 @@ export const ApiSettingsScreen: React.FC = observer(() => {
         },
       },
     ]);
+  };
+
+  const handleAddProvider = () => {
+    if (!newProviderLabel.trim() || !newProviderUrl.trim()) {
+      Alert.alert('Erreur', 'Nom et URL requis.');
+      return;
+    }
+    const id = 'custom_' + Date.now();
+    const config: CustomProviderConfig = {
+      id,
+      label: newProviderLabel.trim(),
+      baseUrl: newProviderUrl.trim(),
+      model: newProviderModel.trim() || 'default',
+      apiKeyRequired: true,
+      format: newProviderFormat,
+    };
+    apiStore.addCustomProvider(config);
+    handleSelectProvider(id as ApiProvider);
+    setShowAddProvider(false);
+    setNewProviderLabel('');
+    setNewProviderUrl('');
+    setNewProviderModel('');
+    Alert.alert('Succès', 'Provider ajouté ! Entrez votre clé API.');
   };
 
   const handleFetchModels = async () => {
@@ -188,7 +216,7 @@ export const ApiSettingsScreen: React.FC = observer(() => {
             style={[styles.subtitle, {color: theme.colors.onSurfaceVariant}]}>
             Fournisseur API
           </Text>
-          {PROVIDERS.map(p => (
+          {[...PROVIDERS, ...apiStore.customProviders.map(cp => ({id: cp.id as ApiProvider, label: cp.label, url: cp.baseUrl}))].map(p => (
             <TouchableOpacity
               key={p.id}
               onPress={() => handleSelectProvider(p.id)}
@@ -229,6 +257,64 @@ export const ApiSettingsScreen: React.FC = observer(() => {
               </Text>
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* AJOUTER PROVIDER */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            onPress={() => setShowAddProvider(!showAddProvider)}
+            style={[styles.modeBtn, {flex: 0, paddingHorizontal: 16, backgroundColor: theme.colors.surfaceVariant}]}>
+            <Text style={{color: theme.colors.onSurfaceVariant, fontWeight: 'bold'}}>
+              {showAddProvider ? '✕ Annuler' : '＋ Ajouter une API personnalisée'}
+            </Text>
+          </TouchableOpacity>
+
+          {showAddProvider && (
+            <View style={{marginTop: 12}}>
+              <Text style={[styles.label, {color: theme.colors.onSurfaceVariant}]}>Nom du provider</Text>
+              <TextInput
+                style={[styles.input, {backgroundColor: theme.colors.surfaceVariant, color: theme.colors.onSurface}]}
+                value={newProviderLabel}
+                onChangeText={setNewProviderLabel}
+                placeholder="Ex: Mon API locale"
+                placeholderTextColor={theme.colors.onSurfaceVariant}
+              />
+              <Text style={[styles.label, {color: theme.colors.onSurfaceVariant}]}>URL de base</Text>
+              <TextInput
+                style={[styles.input, {backgroundColor: theme.colors.surfaceVariant, color: theme.colors.onSurface}]}
+                value={newProviderUrl}
+                onChangeText={setNewProviderUrl}
+                placeholder="http://192.168.1.100:11434/v1"
+                placeholderTextColor={theme.colors.onSurfaceVariant}
+                autoCapitalize="none"
+              />
+              <Text style={[styles.label, {color: theme.colors.onSurfaceVariant}]}>Modèle par défaut</Text>
+              <TextInput
+                style={[styles.input, {backgroundColor: theme.colors.surfaceVariant, color: theme.colors.onSurface}]}
+                value={newProviderModel}
+                onChangeText={setNewProviderModel}
+                placeholder="llama3, gpt-4, mistral..."
+                placeholderTextColor={theme.colors.onSurfaceVariant}
+                autoCapitalize="none"
+              />
+              <Text style={[styles.label, {color: theme.colors.onSurfaceVariant}]}>Format API</Text>
+              <View style={{flexDirection: 'row', gap: 8, marginBottom: 10}}>
+                {(['auto', 'openai', 'anthropic'] as const).map(f => (
+                  <TouchableOpacity
+                    key={f}
+                    onPress={() => setNewProviderFormat(f)}
+                    style={[styles.modeBtn, {flex: 1, backgroundColor: newProviderFormat === f ? theme.colors.primary : theme.colors.surfaceVariant}]}>
+                    <Text style={{fontSize: 11, color: newProviderFormat === f ? theme.colors.onPrimary : theme.colors.onSurfaceVariant}}>{f}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity
+                style={[styles.saveBtn, {backgroundColor: theme.colors.primary}]}
+                onPress={handleAddProvider}>
+                <Text style={[styles.saveTxt, {color: theme.colors.onPrimary}]}>Ajouter</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* CONFIG */}
