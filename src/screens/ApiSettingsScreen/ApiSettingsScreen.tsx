@@ -44,6 +44,8 @@ export const ApiSettingsScreen: React.FC = observer(() => {
     apiStore.configs[selectedProvider]?.model || '',
   );
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState('');
   const currentMode = apiStore.chatMode;
 
   const handleSelectProvider = (p: ApiProvider) => {
@@ -88,6 +90,26 @@ export const ApiSettingsScreen: React.FC = observer(() => {
         },
       },
     ]);
+  };
+
+  const handleTest = async () => {
+    if (!apiKey.trim()) {
+      Alert.alert('Erreur', 'Entrez une cle API dabord.');
+      return;
+    }
+    setTesting(true);
+    setTestResult('');
+    try {
+      await apiStore.saveApiKey(selectedProvider, apiKey.trim(), customModel || undefined, customUrl || undefined);
+      const result = await apiStore.sendToApi([
+        {role: 'user', content: 'Dis juste "OK" en un mot.'},
+      ]);
+      setTestResult('✅ ' + result.slice(0, 100));
+    } catch (e: any) {
+      setTestResult('❌ ' + (e?.message || 'Erreur inconnue'));
+    } finally {
+      setTesting(false);
+    }
   };
 
   const setMode = (mode: ChatMode) => apiStore.setChatMode(mode);
@@ -221,6 +243,19 @@ export const ApiSettingsScreen: React.FC = observer(() => {
             </Text>
           </View>
 
+          <Text style={[styles.label, {color: theme.colors.onSurfaceVariant}]}>
+              Modele
+            </Text>
+            <TextInput
+              style={[styles.input, {backgroundColor: theme.colors.surfaceVariant, color: theme.colors.onSurface}]}
+              value={customModel || apiStore.configs[selectedProvider]?.model || apiStore.getProviderDefaults(selectedProvider).model}
+              onChangeText={setCustomModel}
+              placeholder={apiStore.getProviderDefaults(selectedProvider).model}
+              placeholderTextColor={theme.colors.onSurfaceVariant}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
           {selectedProvider === 'custom' && (
             <>
               <Text
@@ -292,6 +327,21 @@ export const ApiSettingsScreen: React.FC = observer(() => {
               {saving ? 'Sauvegarde...' : 'Sauvegarder'}
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.saveBtn, {backgroundColor: '#1a3a4a', marginTop: 0}]}
+            onPress={handleTest}
+            disabled={testing}>
+            <Text style={[styles.saveTxt, {color: '#00ff88'}]}>
+              {testing ? 'Test en cours...' : '🔌 Tester la connexion'}
+            </Text>
+          </TouchableOpacity>
+
+          {testResult ? (
+            <Text style={{color: testResult.startsWith('✅') ? '#00cc66' : '#ff4444', marginBottom: 10, fontSize: 13}}>
+              {testResult}
+            </Text>
+          ) : null}
 
           {apiStore.configs[selectedProvider]?.apiKey && (
             <TouchableOpacity
