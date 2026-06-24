@@ -57,6 +57,7 @@ import {deepLinkStore as mockDeepLinkStore} from '../__mocks__/stores/deepLinkSt
 import {mockServerStore} from '../__mocks__/stores/serverStore';
 import {mockTTSStore} from '../__mocks__/stores/ttsStore';
 import {mockRagStore} from '../__mocks__/stores/ragStore';
+import {mockApiStore} from '../__mocks__/stores/apiStore';
 import {checkoutFlowStore as mockCheckoutFlowStore} from '../__mocks__/stores/checkoutFlowStore';
 
 jest.mock('@react-native-clipboard/clipboard', () => mockClipboard);
@@ -116,6 +117,7 @@ jest.mock('../src/store', () => {
     serverStore: mockServerStore,
     ttsStore: mockTTSStore,
     ragStore: mockRagStore,
+    apiStore: mockApiStore,
     checkoutFlowStore: mockCheckoutFlowStore,
     defaultCompletionSettings: mockDefaultCompletionSettings,
   };
