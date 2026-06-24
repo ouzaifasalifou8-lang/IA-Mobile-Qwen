@@ -15,6 +15,7 @@ import {
   ragStore,
   ttsStore,
   uiStore,
+  apiStore,
 } from '../store';
 import RNFS from '@dr.pogodin/react-native-fs';
 
@@ -866,6 +867,39 @@ export const useChatSession = (
     });
 
     currentMessageInfo.current = messageInfo;
+
+    // OUZAIF: Mode API - envoyer à l'API externe si configuré
+    if (apiStore.isApiMode && apiStore.hasApiKey) {
+      try {
+        const apiMessages = (cleanCompletionParams.messages ?? []).map(
+          (m: any) => ({role: m.role as string, content: m.content as string})
+        );
+        const assistantMsg: MessageType.Text = {
+          author: assistant,
+          createdAt: Date.now(),
+          id: '',
+          text: '',
+          type: 'text',
+          metadata: {copyable: true, conversationId: conversationIdRef.current},
+        };
+        await chatSessionStore.addMessageToCurrentSession(assistantMsg as any);
+        const fullText = await apiStore.sendToApi(apiMessages, (chunk) => {
+          assistantMsg.text += chunk;
+        });
+        await chatSessionStore.updateMessage(
+          currentMessageInfo.current?.id ?? '',
+          currentMessageInfo.current?.sessionId ?? '',
+          {metadata: {copyable: true, content: fullText}},
+        );
+      } catch (apiErr: any) {
+        await addSystemMessage('Erreur API: ' + (apiErr?.message || 'Inconnue'));
+      } finally {
+        modelStore.setInferencing(false);
+        modelStore.setIsStreaming(false);
+        chatSessionStore.setIsGenerating(false);
+      }
+      return;
+    }
 
     // Allowed talent names for this Pal. The runner rejects any
     // tool call whose function.name isn't in this list.
