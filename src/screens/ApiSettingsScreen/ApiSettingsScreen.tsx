@@ -46,6 +46,8 @@ export const ApiSettingsScreen: React.FC = observer(() => {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState('');
+  const [models, setModels] = useState<string[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
   const currentMode = apiStore.chatMode;
 
   const handleSelectProvider = (p: ApiProvider) => {
@@ -90,6 +92,21 @@ export const ApiSettingsScreen: React.FC = observer(() => {
         },
       },
     ]);
+  };
+
+  const handleFetchModels = async () => {
+    if (!apiKey.trim()) {
+      Alert.alert('Erreur', 'Entrez une cle API dabord.');
+      return;
+    }
+    setLoadingModels(true);
+    await apiStore.saveApiKey(selectedProvider, apiKey.trim(), customModel || undefined, customUrl || undefined);
+    const list = await apiStore.fetchModels(selectedProvider);
+    setModels(list);
+    setLoadingModels(false);
+    if (list.length === 0) {
+      Alert.alert('Info', 'Aucun modele trouve ou API non compatible.');
+    }
   };
 
   const handleTest = async () => {
@@ -255,6 +272,33 @@ export const ApiSettingsScreen: React.FC = observer(() => {
               autoCapitalize="none"
               autoCorrect={false}
             />
+
+          <TouchableOpacity
+            style={[styles.saveBtn, {backgroundColor: '#2a2a4a', marginTop: 0, marginBottom: 4}]}
+            onPress={handleFetchModels}
+            disabled={loadingModels}>
+            <Text style={[styles.saveTxt, {color: '#aaaaff'}]}>
+              {loadingModels ? 'Chargement...' : '📋 Charger les modèles'}
+            </Text>
+          </TouchableOpacity>
+
+          {models.length > 0 && (
+            <View style={{marginBottom: 10}}>
+              {models.map(m => (
+                <TouchableOpacity
+                  key={m}
+                  onPress={() => setCustomModel(m)}
+                  style={{
+                    padding: 8,
+                    backgroundColor: customModel === m ? '#1a472a' : theme.colors.surfaceVariant,
+                    borderRadius: 6,
+                    marginBottom: 4,
+                  }}>
+                  <Text style={{color: theme.colors.onSurface, fontSize: 12}}>{m}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
 
           {selectedProvider === 'custom' && (
             <>

@@ -871,26 +871,50 @@ export const useChatSession = (
     // OUZAIF: Mode API - envoyer à l'API externe si configuré
     if (apiStore.isApiMode && apiStore.hasApiKey) {
       try {
-        const apiMessages = (cleanCompletionParams.messages ?? []).map(
-          (m: any) => ({role: m.role as string, content: m.content as string})
-        );
-        const assistantMsg: MessageType.Text = {
-          author: assistant,
-          createdAt: Date.now(),
-          id: '',
-          text: '',
-          type: 'text',
-          metadata: {copyable: true, conversationId: conversationIdRef.current},
-        };
-        await chatSessionStore.addMessageToCurrentSession(assistantMsg as any);
-        const fullText = await apiStore.sendToApi(apiMessages, (chunk) => {
-          assistantMsg.text += chunk;
+        // Construire historique de conversation
+        const history = toJS(chatSessionStore.currentSessionMessages)
+          .filter((m: any) => m.type === 'text' && (m.role === 'user' || m.role === 'assistant'))
+          .slice(-20) // Garder les 20 derniers messages
+          .map((m: any) => ({
+            role: m.role as string,
+            content: typeof m.content === 'string' ? m.content : m.text || '',
+          }));
+
+        // Ajouter le message système si disponible
+        const sysMsg = cleanCompletionParams.messages?.find((m: any) => m.role === 'system');
+        const apiMessages = [
+          ...(sysMsg ? [{role: 'system', content: sysMsg.content as string}] : []),
+          ...history,
+          {role: 'user', content: message.text},
+        ];
+
+        modelStore.setIsStreaming(true);
+        let streamedText = '';
+
+        const fullText = await apiStore.sendToApi(apiMessages, async (chunk) => {
+          streamedText += chunk;
+          if (currentMessageInfo.current) {
+            await chatSessionStore.updateMessage(
+              currentMessageInfo.current.id,
+              currentMessageInfo.current.sessionId,
+              {metadata: {copyable: true, streamingContent: streamedText}},
+            );
+          }
         });
-        await chatSessionStore.updateMessage(
-          currentMessageInfo.current?.id ?? '',
-          currentMessageInfo.current?.sessionId ?? '',
-          {metadata: {copyable: true, content: fullText}},
-        );
+
+        if (currentMessageInfo.current) {
+          await chatSessionStore.updateMessage(
+            currentMessageInfo.current.id,
+            currentMessageInfo.current.sessionId,
+            {metadata: {copyable: true, content: fullText}},
+          );
+        }
+
+        // Mode hybride: enrichir avec le modèle local si disponible
+        if (apiStore.chatMode === 'hybrid' && modelStore.engine) {
+          console.log('[OUZAIF] Mode hybride: réponse API reçue, enrichissement local skippé');
+        }
+
       } catch (apiErr: any) {
         await addSystemMessage('Erreur API: ' + (apiErr?.message || 'Inconnue'));
       } finally {

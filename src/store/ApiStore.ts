@@ -299,6 +299,37 @@ class ApiStore {
     }
   }
 
+  async fetchModels(provider?: ApiProvider): Promise<string[]> {
+    const p = provider || this.selectedProvider;
+    const config = this.configs[p];
+    if (!config?.apiKey) return [];
+
+    try {
+      if (p === 'anthropic') {
+        // Anthropic n'a pas d'endpoint /models standard, on retourne liste fixe
+        return [
+          'claude-haiku-4-5-20251001',
+          'claude-sonnet-4-6',
+          'claude-opus-4-6',
+        ];
+      }
+      const resp = await fetch(config.baseUrl + '/models', {
+        headers: {
+          Authorization: 'Bearer ' + config.apiKey,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      return (data.data || data.models || [])
+        .map((m: any) => m.id || m.name || m)
+        .filter(Boolean)
+        .slice(0, 30);
+    } catch {
+      return [];
+    }
+  }
+
   getProviderDefaults(provider: ApiProvider) {
     return PROVIDER_DEFAULTS[provider];
   }
