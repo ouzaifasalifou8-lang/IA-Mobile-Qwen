@@ -33,6 +33,7 @@ module.exports = {
   testPathIgnorePatterns: ['/node_modules/', '/e2e/', '/__tests__/ChatScreen.test.tsx', '/__tests__/VideoPalScreen.test.tsx'],
   moduleNameMapper: {
     '^test-renderer$': '<rootDir>/node_modules/react-test-renderer',
+    'react-native-voice': '<rootDir>/__mocks__/external/react-native-voice.ts',
     '@react-native-async-storage/async-storage':
       '<rootDir>/__mocks__/external/@react-native-async-storage/async-storage.js',
     'llama.rn': '<rootDir>/__mocks__/external/llama.rn.ts',
