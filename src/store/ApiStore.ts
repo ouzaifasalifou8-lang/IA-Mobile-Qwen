@@ -264,27 +264,15 @@ class ApiStore {
 
     if (onChunk) {
       // Streaming
-      const reader = resp.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullText = '';
-      if (reader) {
-        while (true) {
-          const {done, value} = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
-          for (const line of lines) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta?.content || '';
-              if (delta) {
-                fullText += delta;
-                onChunk(delta);
-              }
-            } catch {}
-          }
+      // Utiliser le texte complet sans streaming (TextDecoder non disponible sur Android)
+      const data = await resp.json();
+      const fullText = data.choices?.[0]?.message?.content || '';
+      if (fullText && onChunk) {
+        // Simuler le streaming chunk par chunk
+        const words = fullText.split(' ');
+        for (const word of words) {
+          onChunk(word + ' ');
+          await new Promise(r => setTimeout(r, 10));
         }
       }
       return fullText;
@@ -324,25 +312,14 @@ class ApiStore {
     }
 
     if (onChunk) {
-      const reader = resp.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullText = '';
-      if (reader) {
-        while (true) {
-          const {done, value} = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n').filter(l => l.startsWith('data: '));
-          for (const line of lines) {
-            try {
-              const parsed = JSON.parse(line.slice(6));
-              const delta = parsed.delta?.text || '';
-              if (delta) {
-                fullText += delta;
-                onChunk(delta);
-              }
-            } catch {}
-          }
+      // Utiliser le texte complet (TextDecoder non disponible sur Android)
+      const data = await resp.json();
+      const fullText = data.content?.[0]?.text || '';
+      if (fullText && onChunk) {
+        const words = fullText.split(' ');
+        for (const word of words) {
+          onChunk(word + ' ');
+          await new Promise(r => setTimeout(r, 10));
         }
       }
       return fullText;
