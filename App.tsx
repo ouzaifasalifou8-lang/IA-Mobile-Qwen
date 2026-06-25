@@ -42,6 +42,7 @@ import {
   AboutScreen,
   ApiSettingsScreen,
   AgricultureScreen,
+  ConnectionScreen,
 
   // Dev tools screen. Only available in debug mode.
   DevToolsScreen,
@@ -166,6 +167,14 @@ const App = observer(() => {
                         options={{
                           headerStyle: styles.headerWithoutDivider,
                           title: '🌾 Agriculture & Élevage',
+                        }}
+                      />
+                      <Drawer.Screen
+                        name={ROUTES.CONNECTION}
+                        component={gestureHandlerRootHOC(ConnectionScreen)}
+                        options={{
+                          headerStyle: styles.headerWithoutDivider,
+                          title: '📡 Connexion',
                         }}
                       />
 

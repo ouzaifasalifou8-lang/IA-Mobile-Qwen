@@ -9,3 +9,4 @@ export * from './SettingsScreen';
 export * from './DevToolsScreen';
 export * from './ApiSettingsScreen';
 export * from './AgricultureScreen';
+export * from './ConnectionScreen';
