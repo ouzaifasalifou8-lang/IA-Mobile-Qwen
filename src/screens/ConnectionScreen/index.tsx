@@ -32,7 +32,11 @@ export const ConnectionScreen: React.FC = observer(() => {
   };
 
   const handleConnect = async (device: DeviceInfo) => {
-    await connectionStore.connect(device);
+    if (device.type === 'bluetooth') {
+      await connectionStore.connectBluetooth(device);
+    } else {
+      await connectionStore.connect(device);
+    }
     if (connectionStore.status === 'connected') {
       Alert.alert('Connecte!', `Connecte a ${device.name}`);
     } else {
@@ -101,7 +105,16 @@ export const ConnectionScreen: React.FC = observer(() => {
                 onPress={handleScan}
                 disabled={connectionStore.status === 'scanning'}>
                 <Text style={[styles.btnText, {color: theme.colors.onPrimary}]}>
-                  📡 Scanner le reseau local
+                  📡 Scanner le reseau WiFi local
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.btn, {backgroundColor: '#1a3a6a'}]}
+                onPress={() => connectionStore.scanBluetooth()}
+                disabled={connectionStore.status === 'scanning'}>
+                <Text style={[styles.btnText, {color: '#4488ff'}]}>
+                  🔵 Scanner Bluetooth (5 sec)
                 </Text>
               </TouchableOpacity>
 
@@ -183,6 +196,7 @@ export const ConnectionScreen: React.FC = observer(() => {
                     </Text>
                     <Text style={[styles.deviceAddr, {color: theme.colors.onSurfaceVariant}]}>
                       {device.address}
+                      {device.rssi ? ` • Signal: ${device.rssi} dBm` : ''}
                     </Text>
                   </View>
                   <Text style={{color: theme.colors.primary, fontWeight: 'bold'}}>→</Text>
@@ -211,7 +225,7 @@ export const ConnectionScreen: React.FC = observer(() => {
           <Text style={[styles.sectionTitle, {color: theme.colors.onSurfaceVariant}]}>
             PROTOCOLE SUPPORTE
           </Text>
-          {['💬 Texte en temps reel', '🤖 Reponses IA automatiques', '📁 Transfert de fichiers', '🎵 Audio (base64)', '📹 Video (base64)', '⚡ Commandes ESP32'].map((item, i) => (
+          {['💬 Texte en temps reel', '🤖 Reponses IA automatiques', '📁 Transfert de fichiers', '🎵 Audio (base64)', '📹 Video (base64)', '⚡ Commandes ESP32', '🔵 BLE UART (Nordic UUID)'].map((item, i) => (
             <Text key={i} style={{color: theme.colors.onSurface, fontSize: 13, marginVertical: 2}}>
               {item}
             </Text>

@@ -34,6 +34,7 @@ module.exports = {
   moduleNameMapper: {
     '^test-renderer$': '<rootDir>/node_modules/react-test-renderer',
     'react-native-voice': '<rootDir>/__mocks__/external/react-native-voice.ts',
+    'react-native-ble-plx': '<rootDir>/__mocks__/external/react-native-ble-plx.ts',
     '@react-native-async-storage/async-storage':
       '<rootDir>/__mocks__/external/@react-native-async-storage/async-storage.js',
     'llama.rn': '<rootDir>/__mocks__/external/llama.rn.ts',
