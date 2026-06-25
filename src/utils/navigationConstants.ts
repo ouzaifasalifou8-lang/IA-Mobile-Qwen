@@ -8,6 +8,7 @@ export const ROUTES = {
   SETTINGS: 'Settings',
   APP_INFO: 'App Info',
   API_SETTINGS: 'API & IA',
+  AGRICULTURE: 'Agriculture & Élevage',
 
   // Dev tools route. Only available in debug mode.
   DEV_TOOLS: 'Dev Tools',

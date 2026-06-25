@@ -42,6 +42,7 @@ import {
   BenchmarkScreen,
   AboutScreen,
   ApiSettingsScreen,
+  AgricultureScreen,
 
   // Dev tools screen. Only available in debug mode.
   DevToolsScreen,
@@ -159,6 +160,14 @@ const App = observer(() => {
                         options={{
                           headerStyle: styles.headerWithoutDivider,
                           title: 'API & IA',
+                        }}
+                      />
+                      <Drawer.Screen
+                        name={ROUTES.AGRICULTURE}
+                        component={gestureHandlerRootHOC(AgricultureScreen)}
+                        options={{
+                          headerStyle: styles.headerWithoutDivider,
+                          title: '🌾 Agriculture & Élevage',
                         }}
                       />
 
