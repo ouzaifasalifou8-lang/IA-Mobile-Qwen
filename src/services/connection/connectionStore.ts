@@ -1,12 +1,6 @@
 // Service de connexion WebSocket + Bluetooth pour communication avec ESP32 et autres appareils
 import {makeAutoObservable, runInAction} from 'mobx';
-import {BleManager, Device, State} from 'react-native-ble-plx';
-import {PermissionsAndroid, Platform} from 'react-native';
 
-// UUID communs pour communication série BLE (Nordic UART Service)
-const UART_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
-const UART_TX_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // Write
-const UART_RX_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // Notify
 
 export type ConnectionStatus = 'disconnected' | 'scanning' | 'connecting' | 'connected' | 'error';
 
@@ -35,8 +29,7 @@ class ConnectionStore {
   messages: ConnectionMessage[] = [];
   error = '';
   private ws: WebSocket | null = null;
-  private bleManager: BleManager | null = null;
-  private bleDevice: Device | null = null;
+  // BLE désactivé temporairement (incompatibilité Gradle 9)
   private onMessageCallbacks: ((msg: ConnectionMessage) => void)[] = [];
 
   constructor() {
@@ -198,144 +191,11 @@ class ConnectionStore {
     };
   }
 
-  // Initialiser le BLE
-  private getBleManager(): BleManager {
-    if (!this.bleManager) {
-      this.bleManager = new BleManager();
-    }
-    return this.bleManager;
-  }
-
-  // Demander permissions Bluetooth Android
-  private async requestBlePermissions(): Promise<boolean> {
-    if (Platform.OS !== 'android') return true;
-    try {
-      const granted = await PermissionsAndroid.requestMultiple([
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      ]);
-      return Object.values(granted).every(r => r === PermissionsAndroid.RESULTS.GRANTED);
-    } catch {
-      return false;
-    }
-  }
-
-  // Scanner les appareils Bluetooth
-  async scanBluetooth(durationMs: number = 5000): Promise<void> {
-    const manager = this.getBleManager();
-    const ok = await this.requestBlePermissions();
-    if (!ok) {
-      runInAction(() => {
-        this.error = 'Permission Bluetooth refusee';
-        this.status = 'error';
-      });
-      return;
-    }
-
-    runInAction(() => {
-      this.status = 'scanning';
-      this.error = '';
-    });
-
-    const bleDevices: DeviceInfo[] = [];
-
-    manager.startDeviceScan(null, null, (error, device) => {
-      if (error || !device) return;
-      const existing = bleDevices.find(d => d.id === device.id);
-      if (!existing) {
-        const info: DeviceInfo = {
-          id: device.id,
-          name: device.name || device.localName || 'Appareil BT',
-          address: device.id,
-          type: 'bluetooth',
-          rssi: device.rssi || undefined,
-        };
-        bleDevices.push(info);
-        runInAction(() => {
-          this.devices = [...this.devices.filter(d => d.type !== 'bluetooth'), ...bleDevices];
-        });
-      }
-    });
-
-    await new Promise(r => setTimeout(r, durationMs));
-    manager.stopDeviceScan();
-
-    runInAction(() => {
-      this.status = 'disconnected';
-      if (bleDevices.length === 0) {
-        this.error = 'Aucun appareil Bluetooth trouve';
-      }
-    });
-  }
-
-  // Connexion BLE
-  async connectBluetooth(device: DeviceInfo): Promise<void> {
-    const manager = this.getBleManager();
-    runInAction(() => {
-      this.status = 'connecting';
-      this.error = '';
-    });
-
-    try {
-      const connected = await manager.connectToDevice(device.address);
-      await connected.discoverAllServicesAndCharacteristics();
-      this.bleDevice = connected;
-
-      // S'abonner aux notifications RX (données entrantes)
-      connected.monitorCharacteristicForService(
-        UART_SERVICE_UUID,
-        UART_RX_UUID,
-        (error, char) => {
-          if (error || !char?.value) return;
-          try {
-            const text = atob(char.value);
-            const msg: ConnectionMessage = {
-              type: 'text',
-              payload: text,
-              timestamp: Date.now(),
-              sender: 'device',
-            };
-            runInAction(() => { this.messages.push(msg); });
-            this.onMessageCallbacks.forEach(cb => cb(msg));
-          } catch {}
-        }
-      );
-
-      runInAction(() => {
-        this.status = 'connected';
-        this.connectedDevice = device;
-      });
-    } catch (e: any) {
-      runInAction(() => {
-        this.status = 'error';
-        this.error = e?.message || 'Connexion BLE echouee';
-      });
-    }
-  }
-
-  // Envoyer via BLE
-  async sendBluetooth(text: string): Promise<boolean> {
-    if (!this.bleDevice) return false;
-    try {
-      const encoded = btoa(text);
-      await this.bleDevice.writeCharacteristicWithResponseForService(
-        UART_SERVICE_UUID,
-        UART_TX_UUID,
-        encoded,
-      );
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
   // Déconnecter
   disconnect(): void {
     this.ws?.close();
     this.ws = null;
-    this.bleDevice?.cancelConnection().catch(() => {});
-    this.bleDevice = null;
+
     runInAction(() => {
       this.status = 'disconnected';
       this.connectedDevice = null;

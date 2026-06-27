@@ -32,11 +32,7 @@ export const ConnectionScreen: React.FC = observer(() => {
   };
 
   const handleConnect = async (device: DeviceInfo) => {
-    if (device.type === 'bluetooth') {
-      await connectionStore.connectBluetooth(device);
-    } else {
-      await connectionStore.connect(device);
-    }
+    await connectionStore.connect(device);
     if (connectionStore.status === 'connected') {
       Alert.alert('Connecte!', `Connecte a ${device.name}`);
     } else {
@@ -109,14 +105,6 @@ export const ConnectionScreen: React.FC = observer(() => {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.btn, {backgroundColor: '#1a3a6a'}]}
-                onPress={() => connectionStore.scanBluetooth()}
-                disabled={connectionStore.status === 'scanning'}>
-                <Text style={[styles.btnText, {color: '#4488ff'}]}>
-                  🔵 Scanner Bluetooth (5 sec)
-                </Text>
-              </TouchableOpacity>
 
               {/* Connexion manuelle */}
               <TouchableOpacity
