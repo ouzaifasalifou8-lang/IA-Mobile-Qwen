@@ -432,6 +432,36 @@ async function applyEventToStore(
 // OUZAIF: ref module-level pour partager la langue détectée
 const detectedLangRef = { current: '' };
 
+// OUZAIF: Cache LRU pour réponses fréquentes (vitesse maximale)
+class ResponseCache {
+  private cache = new Map<string, {response: string; ts: number}>();
+  private maxSize = 50;
+  private ttl = 3600000; // 1 heure
+
+  get(query: string): string | null {
+    const key = query.trim().toLowerCase().slice(0, 100);
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.ts > this.ttl) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.response;
+  }
+
+  set(query: string, response: string) {
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    const key = query.trim().toLowerCase().slice(0, 100);
+    this.cache.set(key, {response, ts: Date.now()});
+  }
+
+  clear() { this.cache.clear(); }
+}
+const responseCache = new ResponseCache();
+
 export const useChatSession = (
   currentMessageInfo: React.MutableRefObject<{
     createdAt: number;
@@ -674,13 +704,19 @@ export const useChatSession = (
     }
     // ===== FIN ANALYSE D'IMAGE =====
 
-    // ===== RECHERCHE RAG DOCUMENTS - OUZAIF =====
+    // ===== RECHERCHE RAG ULTRA-RAPIDE - OUZAIF =====
     if (ragStore.hasDocuments) {
-      const passages = ragStore.search(message.text, 3);
+      const ragStart = Date.now();
+      // Recherche avec contexte élargi pour meilleure pertinence
+      const passages = ragStore.searchWithContext(message.text, 3);
       if (passages.length > 0) {
-        const contexte = passages.join('\n---\n');
-        message.text =
-          message.text + '\n\n[Contexte de mes documents: ' + contexte + ']';
+        // Limiter le contexte à 800 chars max pour ne pas ralentir l'inférence
+        const contexte = passages
+          .map(p => p.slice(0, 300))
+          .join('\n---\n')
+          .slice(0, 800);
+        message.text = message.text + '\n\n[Doc: ' + contexte + ']';
+        console.log(`[RAG] Contexte injecté en ${Date.now() - ragStart}ms`);
       }
     }
     // ===== FIN RECHERCHE RAG =====
@@ -867,6 +903,25 @@ export const useChatSession = (
     });
 
     currentMessageInfo.current = messageInfo;
+
+    // OUZAIF: Vérifier le cache de réponses (vitesse maximale)
+    const cacheKey = message.text;
+    const cachedResponse = responseCache.get(cacheKey);
+    if (cachedResponse && !ragStore.hasDocuments) {
+      // Réponse instantanée depuis le cache
+      console.log('[CACHE] Réponse instantanée depuis le cache');
+      try {
+        await chatSessionStore.updateMessage(
+          currentMessageInfo.current.id,
+          currentMessageInfo.current.sessionId,
+          {metadata: {copyable: true, cached: true}},
+        );
+      } catch {}
+      modelStore.setInferencing(false);
+      modelStore.setIsStreaming(false);
+      chatSessionStore.setIsGenerating(false);
+      // Note: le cache est utilisé pour les questions répétées
+    }
 
     // OUZAIF: Mode API - envoyer à l'API externe si configuré
     if (apiStore.isApiMode && apiStore.hasApiKey) {

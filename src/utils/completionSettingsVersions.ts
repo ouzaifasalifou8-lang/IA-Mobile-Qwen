@@ -26,10 +26,10 @@ export const defaultCompletionParams: CompletionParams = {
 
   // llama.rn API properties
   prompt: '',
-  n_predict: -1, // The maximum number of tokens to predict when generating text. -1 = unlimited (until EOS).
+  n_predict: 512, // Limiter à 512 tokens pour réponses rapides (modifier si besoin)
   temperature: 0.7, // The randomness of the generated text.
-  top_k: 40, // Limit the next token selection to the K most probable tokens.
-  top_p: 0.95, // Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P.
+  top_k: 20, // OPTIMISATION VITESSE: réduit de 40 à 20 (moins de calcul par token)
+  top_p: 0.90, // OPTIMISATION VITESSE: réduit de 0.95 à 0.90
   min_p: 0.05, //The minimum probability for a token to be considered, relative to the probability of the most likely token.
   xtc_threshold: 0.1, // Sets a minimum probability threshold for tokens to be removed.
   xtc_probability: 0.0, // Sets the chance for token removal (checked once on sampler start)
