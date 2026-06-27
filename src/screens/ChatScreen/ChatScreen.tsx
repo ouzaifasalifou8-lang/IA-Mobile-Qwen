@@ -1,4 +1,5 @@
 import { translationService } from '../../services/translationService';
+import { WeatherWidget } from '../../components/WeatherWidget';
 import React, {useRef, ReactNode, useState} from 'react';
 import {View, TouchableOpacity, Text, StyleSheet} from 'react-native';
 
@@ -232,6 +233,7 @@ export const ChatScreen: React.FC = observer(() => {
           {isTranslating ? "⏳ Traduction..." : translationEnabled ? "🌍 HAUSA ✓" : "🌍 Traduire"}
         </Text>
       </TouchableOpacity>
+      <WeatherWidget city="Tahoua" />
       <ChatView
         renderBubble={renderBubble}
         messages={chatSessionStore.currentSessionMessages}
