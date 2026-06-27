@@ -19,24 +19,3 @@ declare module '*.svg' {
   const content: React.FC<SvgProps>;
   export default content;
 }
-
-// Déclaration de type pour react-native-voice
-declare module 'react-native-voice' {
-  export interface SpeechResultsEvent {
-    value?: string[];
-  }
-  export interface SpeechErrorEvent {
-    error?: {message?: string; code?: string};
-  }
-  const Voice: {
-    start: (locale: string) => Promise<void>;
-    stop: () => Promise<void>;
-    destroy: () => Promise<void>;
-    removeAllListeners: () => void;
-    onSpeechStart: ((e: any) => void) | null;
-    onSpeechEnd: ((e: any) => void) | null;
-    onSpeechResults: ((e: SpeechResultsEvent) => void) | null;
-    onSpeechError: ((e: SpeechErrorEvent) => void) | null;
-  };
-  export default Voice;
-}
