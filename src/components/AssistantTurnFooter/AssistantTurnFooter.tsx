@@ -4,6 +4,8 @@ import {TouchableOpacity, View} from 'react-native';
 import {observer} from 'mobx-react';
 import {Text} from 'react-native-paper';
 import Clipboard from '@react-native-clipboard/clipboard';
+import {Linking} from 'react-native';
+import Share from 'react-native-share';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
 import {CopyIcon} from '../../assets/icons';
@@ -90,7 +92,26 @@ export const AssistantTurnFooter: React.FC<AssistantTurnFooterProps> = observer(
     }
     const fullTimingsString = timingParts.join(', ');
 
-    const copyToClipboard = () => {
+    const shareWhatsApp = async () => {
+    if (message.type !== 'text' && message.type !== 'assistant_turn') return;
+    const text = derivedText(message).trim();
+    try {
+      // Essayer d'ouvrir WhatsApp directement
+      const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(text)}`;
+      const canOpen = await Linking.canOpenURL(whatsappUrl);
+      if (canOpen) {
+        await Linking.openURL(whatsappUrl);
+      } else {
+        // Fallback vers le partage système
+        await Share.open({
+          message: text,
+          title: 'Réponse IA - PocketPal',
+        });
+      }
+    } catch {}
+  };
+
+  const copyToClipboard = () => {
       if (message.type !== 'text' && message.type !== 'assistant_turn') {
         return;
       }
