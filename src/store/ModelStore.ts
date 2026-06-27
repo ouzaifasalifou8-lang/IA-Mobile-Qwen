@@ -130,7 +130,7 @@ class ModelStore {
   }
 
   appState: AppStateStatus = AppState.currentState;
-  useAutoRelease: boolean = true;
+  useAutoRelease: boolean = false; // OUZAIF: désactivé par défaut pour garder le modèle en mémoire
   // UI loading state - true during model load/release transitions
   isContextLoading: boolean = false;
   loadingModel: Model | undefined = undefined;
