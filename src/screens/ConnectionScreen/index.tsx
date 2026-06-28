@@ -12,6 +12,7 @@ import {Text} from 'react-native-paper';
 import {observer} from 'mobx-react';
 import {useTheme} from '../../hooks';
 import {connectionStore, DeviceInfo} from '../../services/connection/connectionStore';
+import {bleService, BLEDevice} from '../../services/bleService';
 
 export const ConnectionScreen: React.FC = observer(() => {
   const theme = useTheme();
@@ -19,6 +20,9 @@ export const ConnectionScreen: React.FC = observer(() => {
   const [customPort, setCustomPort] = useState('80');
   const [showCustom, setShowCustom] = useState(false);
   const [messages, setMessages] = useState<string[]>([]);
+  const [bleDevices, setBleDevices] = useState<BLEDevice[]>([]);
+  const [bleScanning, setBleScanning] = useState(false);
+  const [bleConnectedId, setBleConnectedId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = connectionStore.onMessage(msg => {
@@ -26,6 +30,29 @@ export const ConnectionScreen: React.FC = observer(() => {
     });
     return unsub;
   }, []);
+
+  const handleScanBLE = async () => {
+    setBleScanning(true);
+    setBleDevices([]);
+    await bleService.scan(5, (device) => {
+      setBleDevices(prev => {
+        const exists = prev.find(d => d.id === device.id);
+        if (exists) return prev;
+        return [...prev, device];
+      });
+    });
+    setBleScanning(false);
+  };
+
+  const handleConnectBLE = async (device: BLEDevice) => {
+    const ok = await bleService.connect(device.id);
+    if (ok) {
+      setBleConnectedId(device.id);
+      Alert.alert('Connecte!', `BLE connecte a ${device.name}`);
+    } else {
+      Alert.alert('Erreur', 'Connexion BLE echouee');
+    }
+  };
 
   const handleScan = async () => {
     await connectionStore.scanWifi();
@@ -163,6 +190,47 @@ export const ConnectionScreen: React.FC = observer(() => {
               </TouchableOpacity>
             </View>
           )}
+        </View>
+
+        {/* Scan Bluetooth */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, {color: theme.colors.onSurfaceVariant}]}>
+            BLUETOOTH
+          </Text>
+          <TouchableOpacity
+            style={[styles.btn, {backgroundColor: '#1a3a6a'}]}
+            onPress={handleScanBLE}
+            disabled={bleScanning}>
+            <Text style={[styles.btnText, {color: '#4488ff'}]}>
+              {bleScanning ? '🔵 Scan en cours (5s)...' : '🔵 Scanner Bluetooth'}
+            </Text>
+          </TouchableOpacity>
+          {bleConnectedId && (
+            <TouchableOpacity
+              style={[styles.btn, {backgroundColor: theme.colors.errorContainer}]}
+              onPress={() => { bleService.disconnect(bleConnectedId); setBleConnectedId(null); }}>
+              <Text style={[styles.btnText, {color: theme.colors.error}]}>❌ Deconnecter BLE</Text>
+            </TouchableOpacity>
+          )}
+          {bleDevices.map(device => (
+            <TouchableOpacity
+              key={device.id}
+              style={[styles.deviceCard, {backgroundColor: bleConnectedId === device.id ? '#1a472a' : theme.colors.surfaceVariant}]}
+              onPress={() => handleConnectBLE(device)}>
+              <View style={styles.deviceRow}>
+                <Text style={{fontSize: 20}}>🔵</Text>
+                <View style={{flex: 1, marginLeft: 8}}>
+                  <Text style={[styles.deviceName, {color: theme.colors.onSurface}]}>{device.name}</Text>
+                  <Text style={[styles.deviceAddr, {color: theme.colors.onSurfaceVariant}]}>
+                    {device.id} • {device.rssi} dBm
+                  </Text>
+                </View>
+                <Text style={{color: bleConnectedId === device.id ? '#00cc66' : theme.colors.primary, fontWeight: 'bold'}}>
+                  {bleConnectedId === device.id ? '✓' : '→'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Appareils trouvés */}
