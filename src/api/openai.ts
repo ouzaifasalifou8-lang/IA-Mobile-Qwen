@@ -412,6 +412,10 @@ export async function streamChatCompletion(
         if (event === 'done') {
           return;
         }
+        // Ignorer si event n'est pas un objet
+if (typeof event !== 'object' || event === null) {
+  continue;
+}
 
         if (!isValidChatChunk(event)) {
           continue;
