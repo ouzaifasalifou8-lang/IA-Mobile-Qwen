@@ -79,6 +79,22 @@ describe('migrateCompletionSettings', () => {
     expect(migrated.temperature).toBe(0.7);
   });
 
+  it('should migrate from version 3 to version 4 when n_predict is v0 default (512)', () => {
+    const settings = {
+      version: 3,
+      temperature: 0.7,
+      n_predict: 512,
+      enable_thinking: true,
+      jinja: true,
+      include_thinking_in_context: true,
+    };
+    const migrated = migrateCompletionSettings(settings);
+
+    expect(migrated.version).toBe(4);
+    expect(migrated.n_predict).toBe(-1);
+    expect(migrated.temperature).toBe(0.7);
+  });
+
   it('should preserve custom n_predict value during v3 to v4 migration', () => {
     const settings = {
       version: 3,
@@ -143,6 +159,18 @@ describe('migrateCompletionSettings', () => {
     );
     expect(migrated.n_predict).toBe(-1);
     expect(migrated.temperature).toBe(0.5);
+  });
+
+  it('should migrate from v0 to v4 with 512 default converting to -1', () => {
+    const settings = {
+      version: 0,
+      temperature: 0.5,
+      n_predict: 512,
+    };
+    const migrated = migrateCompletionSettings(settings);
+
+    expect(migrated.version).toBe(4);
+    expect(migrated.n_predict).toBe(-1);
   });
 
   it('should migrate from v0 to v4 preserving custom n_predict', () => {
@@ -253,5 +281,13 @@ describe('defaultCompletionParams', () => {
 
   it('should have CURRENT_COMPLETION_SETTINGS_VERSION equal to 4', () => {
     expect(CURRENT_COMPLETION_SETTINGS_VERSION).toBe(4);
+  });
+
+  it('should have top_k set to 40 by default', () => {
+    expect(defaultCompletionParams.top_k).toBe(40);
+  });
+
+  it('should have top_p set to 0.95 by default', () => {
+    expect(defaultCompletionParams.top_p).toBe(0.95);
   });
 });
