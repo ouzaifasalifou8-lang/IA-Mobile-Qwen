@@ -8,5 +8,6 @@ export * from './SettingsScreen';
 // Dev tools screen. Only available in debug mode.
 export * from './DevToolsScreen';
 export * from './ApiSettingsScreen';
+export { ApiChatScreen } from './ApiChatScreen/ApiChatScreen';
 export * from './AgricultureScreen';
 export * from './ConnectionScreen';
