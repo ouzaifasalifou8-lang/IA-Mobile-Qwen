@@ -1,39 +1,19 @@
-// Service Bluetooth via react-native-ble-manager
-import {NativeEventEmitter, NativeModules, Platform, PermissionsAndroid} from 'react-native';
+// Service Bluetooth via module natif Android custom
+import {NativeModules, NativeEventEmitter, Platform, PermissionsAndroid} from 'react-native';
 
-// Import conditionnel pour éviter les erreurs si le module n'est pas lié
-let BleManager: any = null;
-let bleEmitter: any = null;
-
-try {
-  BleManager = require('react-native-ble-manager').default;
-  bleEmitter = new NativeEventEmitter(NativeModules.BleManager);
-} catch {
-  console.warn('[BLE] react-native-ble-manager non disponible');
-}
+const {BluetoothModule} = NativeModules;
+const bleEmitter = BluetoothModule ? new NativeEventEmitter(BluetoothModule) : null;
 
 export interface BLEDevice {
   id: string;
   name: string;
-  rssi: number;
+  address: string;
+  rssi?: number;
 }
 
 class BLEService {
-  private scanning = false;
-  private devices: Map<string, BLEDevice> = new Map();
   private listeners: any[] = [];
-  private initialized = false;
-
-  async init(): Promise<boolean> {
-    if (!BleManager) return false;
-    try {
-      await BleManager.start({showAlert: false});
-      this.initialized = true;
-      return true;
-    } catch {
-      return false;
-    }
-  }
+  private connectedId: string | null = null;
 
   async requestPermissions(): Promise<boolean> {
     if (Platform.OS !== 'android') return true;
@@ -51,64 +31,55 @@ class BLEService {
     }
   }
 
+  // Obtenir les appareils déjà couplés
+  async getPairedDevices(): Promise<BLEDevice[]> {
+    if (!BluetoothModule) return [];
+    try {
+      const devices = await BluetoothModule.getPairedDevices();
+      return devices || [];
+    } catch {
+      return [];
+    }
+  }
+
+  // Scanner les appareils Bluetooth
   async scan(
-    duration: number = 5,
+    duration: number = 5000,
     onDeviceFound: (device: BLEDevice) => void
   ): Promise<void> {
-    if (!BleManager || !this.initialized) {
-      await this.init();
+    if (!BluetoothModule) {
+      console.warn('[BLE] Module natif non disponible');
+      return;
     }
-    if (!BleManager) return;
 
     const ok = await this.requestPermissions();
     if (!ok) return;
 
-    this.devices.clear();
-    this.scanning = true;
-
     // Écouter les appareils découverts
-    const discoverListener = bleEmitter?.addListener(
-      'BleManagerDiscoverPeripheral',
-      (device: any) => {
-        const bleDevice: BLEDevice = {
-          id: device.id,
-          name: device.name || device.advertising?.localName || 'Inconnu',
-          rssi: device.rssi || 0,
-        };
-        this.devices.set(device.id, bleDevice);
-        onDeviceFound(bleDevice);
-      }
-    );
-
-    const stopListener = bleEmitter?.addListener(
-      'BleManagerStopScan',
-      () => { this.scanning = false; }
-    );
-
-    if (discoverListener) this.listeners.push(discoverListener);
-    if (stopListener) this.listeners.push(stopListener);
+    const listener = bleEmitter?.addListener('BLEDeviceFound', (device: BLEDevice) => {
+      onDeviceFound(device);
+    });
+    if (listener) this.listeners.push(listener);
 
     try {
-      await BleManager.scan([], duration, true);
+      await BluetoothModule.startScan();
+      // Arrêter après duration ms
+      setTimeout(() => this.stopScan(), duration);
     } catch (e) {
       console.warn('[BLE] Scan failed:', e);
-      this.scanning = false;
     }
   }
 
   async stopScan(): Promise<void> {
-    if (!BleManager) return;
-    try {
-      await BleManager.stopScan();
-      this.scanning = false;
-    } catch {}
+    this.listeners.forEach(l => l?.remove());
+    this.listeners = [];
   }
 
   async connect(deviceId: string): Promise<boolean> {
-    if (!BleManager) return false;
+    if (!BluetoothModule) return false;
     try {
-      await BleManager.connect(deviceId);
-      await BleManager.retrieveServices(deviceId);
+      await BluetoothModule.connect(deviceId);
+      this.connectedId = deviceId;
       return true;
     } catch (e) {
       console.warn('[BLE] Connect failed:', e);
@@ -116,45 +87,38 @@ class BLEService {
     }
   }
 
-  async disconnect(deviceId: string): Promise<void> {
-    if (!BleManager) return;
+  async disconnect(deviceId?: string): Promise<void> {
+    if (!BluetoothModule) return;
     try {
-      await BleManager.disconnect(deviceId);
+      await BluetoothModule.disconnect();
+      this.connectedId = null;
     } catch {}
   }
 
-  async write(
-    deviceId: string,
-    serviceUUID: string,
-    characteristicUUID: string,
-    data: number[]
-  ): Promise<boolean> {
-    if (!BleManager) return false;
+  async sendText(text: string): Promise<boolean> {
+    if (!BluetoothModule || !this.connectedId) return false;
     try {
-      await BleManager.write(deviceId, serviceUUID, characteristicUUID, data);
+      await BluetoothModule.write(text);
       return true;
     } catch {
       return false;
     }
   }
 
-  // Envoyer du texte via UART Nordic
-  async sendText(deviceId: string, text: string): Promise<boolean> {
-    const SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
-    const TX_CHAR = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
-    const bytes = Array.from(new TextEncoder().encode(text));
-    return this.write(deviceId, SERVICE, TX_CHAR, bytes);
+  onDataReceived(callback: (data: string) => void): () => void {
+    const listener = bleEmitter?.addListener('BLEDataReceived', ({data}: {data: string}) => {
+      callback(data);
+    });
+    if (listener) this.listeners.push(listener);
+    return () => listener?.remove();
   }
 
-  isScanning(): boolean { return this.scanning; }
-
-  getDevices(): BLEDevice[] {
-    return Array.from(this.devices.values());
+  isConnected(): boolean {
+    return this.connectedId !== null;
   }
 
-  destroy() {
-    this.listeners.forEach(l => l?.remove());
-    this.listeners = [];
+  getConnectedId(): string | null {
+    return this.connectedId;
   }
 }
 

@@ -3,6 +3,7 @@ package com.pocketpal
 import android.app.Application
 import android.system.Os
 import com.facebook.react.PackageList
+import com.pocketpalai.bluetooth.BluetoothPackage
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeHost
