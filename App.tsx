@@ -43,6 +43,7 @@ import {
   ApiSettingsScreen,
   AgricultureScreen,
   ConnectionScreen,
+  ApiChatScreen,
 
   // Dev tools screen. Only available in debug mode.
   DevToolsScreen,
@@ -111,6 +112,14 @@ const App = observer(() => {
                           headerShown: false,
                         }}
                       />
+                      <Drawer.Screen
+  name="ApiChat"
+  component={gestureHandlerRootHOC(ApiChatScreen)}
+  options={{
+    headerShown: true,
+    title: "Chat API",
+  }}
+/>
                       <Drawer.Screen
                         name={ROUTES.PALS}
                         component={gestureHandlerRootHOC(PalsScreen)}
