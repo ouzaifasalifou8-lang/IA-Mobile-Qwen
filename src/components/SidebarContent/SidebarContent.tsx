@@ -492,7 +492,7 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
                 <Drawer.Item
                   label="Agriculture"
                   icon={() => <Icon name="sprout" size={24} color={theme.colors.primary} />}
-                  onPress={() => props.navigation.navigate("Agriculture")}
+                  onPress={() => props.navigation.navigate(ROUTES.AGRICULTURE)}
                   style={styles.menuDrawerItem}
                   testID="drawer-item-agriculture"
                 />
@@ -500,7 +500,7 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
                 <Drawer.Item
                   label="Connection"
                   icon={() => <Icon name="bluetooth" size={24} color={theme.colors.primary} />}
-                  onPress={() => props.navigation.navigate("Connection")}
+                  onPress={() => props.navigation.navigate(ROUTES.CONNECTION)}
                   style={styles.menuDrawerItem}
                   testID="drawer-item-connection"
                 />
