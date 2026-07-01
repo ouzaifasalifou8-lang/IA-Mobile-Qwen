@@ -25,6 +25,7 @@ import {L10nContext} from '../../utils';
 import {t} from '../../locales';
 import {ROUTES} from '../../utils/navigationConstants';
 import {exportChatSession} from '../../utils/exportUtils';
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 // Check if app is in debug mode
 const isDebugMode = __DEV__;
@@ -105,6 +106,13 @@ const SessionItem = React.memo<SessionItemProps>(
             label={session.title}
             style={styles.sessionDrawerItem}
           />
+          <Drawer.Item
+  label="Chat API"
+  icon={() => <Icon name="api" size={24} color={theme.colors.primary} />}
+  onPress={() => props.navigation.navigate("ApiChat")}
+  style={styles.menuDrawerItem}
+  testID="drawer-item-apichat"
+/>
         </TouchableOpacity>
         {!isSelectionMode && (
           <Menu
