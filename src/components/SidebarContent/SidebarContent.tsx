@@ -116,6 +116,20 @@ const SessionItem = React.memo<SessionItemProps>(
           style={styles.menuDrawerItem}
           testID="drawer-item-apichat"
         />
+        <Drawer.Item
+  label="Agriculture"
+  icon={() => <Icon name="sprout" size={24} color={theme.colors.primary} />}
+  onPress={() => onPress("Agriculture")}
+  style={styles.menuDrawerItem}
+  testID="drawer-item-agriculture"
+/>
+<Drawer.Item
+  label="Connection"
+  icon={() => <Icon name="bluetooth" size={24} color={theme.colors.primary} />}
+  onPress={() => onPress("Connection")}
+  style={styles.menuDrawerItem}
+  testID="drawer-item-connection"
+/>
 
         {!isSelectionMode && (
           <Menu
