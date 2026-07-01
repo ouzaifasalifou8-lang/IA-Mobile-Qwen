@@ -1,4 +1,4 @@
-import React, {useContext, useEffect, useState} from 'react';
+  import React, {useContext, useEffect, useState} from 'react';
 import {TouchableOpacity, View, Alert, SectionList} from 'react-native';
 import {observer} from 'mobx-react';
 import {Divider, Drawer, Text} from 'react-native-paper';
@@ -30,6 +30,25 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 // Check if app is in debug mode
 const isDebugMode = __DEV__;
 
+// ... (SessionItem, SelectionModeHeader, SelectAllRow)
+
+export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
+  props => {
+    const [menuVisible, setMenuVisible] = useState<string | null>(null);
+    const [menuPosition, setMenuPosition] = useState({x: 0, y: 0});
+    const [sessionToRename, setSessionToRename] = useState<SessionMetaData | null>(null);
+    const [renameModalVisible, setRenameModalVisible] = useState(false); // ✅ AJOUTÉ
+
+    const theme = useTheme();
+    const styles = createStyles(theme);
+    const l10n = useContext(L10nContext);
+    const insets = useSafeAreaInsets();
+
+    // ... (le reste du code avec les callbacks et le render)
+  }
+);
+
+SidebarContent.displayName = 'SidebarContent';
 // Session item props interface
 interface SessionItemProps {
   session: SessionMetaData;
@@ -108,29 +127,6 @@ const SessionItem = React.memo<SessionItemProps>(
           />
         </TouchableOpacity>
 
-        {/* ✅ CHAT API - EN DEHORS DU TOUCHABLEOPACITY */}
-        <Drawer.Item
-          label="Chat API"
-          icon={() => <Icon name="api" size={24} color={theme.colors.primary} />}
-          onPress={() => onPress("ApiChat")}
-          style={styles.menuDrawerItem}
-          testID="drawer-item-apichat"
-        />
-        <Drawer.Item
-  label="Agriculture"
-  icon={() => <Icon name="sprout" size={24} color={theme.colors.primary} />}
-  onPress={() => onPress("Agriculture")}
-  style={styles.menuDrawerItem}
-  testID="drawer-item-agriculture"
-/>
-<Drawer.Item
-  label="Connection"
-  icon={() => <Icon name="bluetooth" size={24} color={theme.colors.primary} />}
-  onPress={() => onPress("Connection")}
-  style={styles.menuDrawerItem}
-  testID="drawer-item-connection"
-/>
-
         {!isSelectionMode && (
           <Menu
             visible={menuVisible === session.id}
@@ -180,6 +176,7 @@ const SessionItem = React.memo<SessionItemProps>(
 );
 
 SessionItem.displayName = 'SessionItem';
+
 // Selection mode header component
 interface SelectionModeHeaderProps {
   selectedCount: number;
@@ -190,7 +187,6 @@ interface SelectionModeHeaderProps {
   theme: any;
   styles: any;
 }
-
 const SelectionModeHeader: React.FC<SelectionModeHeaderProps> = ({
   selectedCount,
   onCancel,
@@ -205,51 +201,20 @@ const SelectionModeHeader: React.FC<SelectionModeHeaderProps> = ({
       <TouchableOpacity onPress={onCancel} testID="cancel-selection-button">
         <Text style={{color: theme.colors.primary}}>{l10n.common.cancel}</Text>
       </TouchableOpacity>
-
-      <Text style={styles.selectedCountText}>
-        {t(l10n.components.sidebarContent.nSelected, {
-          count: selectedCount.toString(),
-        })}
+      <Text style={styles.selectionCount}>
+        {selectedCount} {l10n.components.sidebarContent.selected}
       </Text>
-
-      <View style={styles.headerActions}>
-        <TouchableOpacity
-          onPress={onExport}
-          disabled={selectedCount === 0}
-          style={[
-            styles.headerActionButton,
-            selectedCount === 0 && styles.headerActionButtonDisabled,
-          ]}
-          testID="bulk-export-button">
-          <ShareIcon
-            stroke={
-              selectedCount === 0
-                ? theme.colors.onSurfaceDisabled
-                : theme.colors.primary
-            }
-          />
+      <View style={styles.selectionActions}>
+        <TouchableOpacity onPress={onExport} testID="export-selected-button">
+          <ShareIcon width={24} height={24} stroke={theme.colors.primary} />
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={onDelete}
-          disabled={selectedCount === 0}
-          style={[
-            styles.headerActionButton,
-            selectedCount === 0 && styles.headerActionButtonDisabled,
-          ]}
-          testID="bulk-delete-button">
-          <TrashIcon
-            stroke={
-              selectedCount === 0
-                ? theme.colors.onSurfaceDisabled
-                : theme.colors.error
-            }
-          />
+        <TouchableOpacity onPress={onDelete} testID="delete-selected-button">
+          <TrashIcon width={24} height={24} stroke={theme.colors.error} />
         </TouchableOpacity>
       </View>
     </View>
   );
 };
-
 SelectionModeHeader.displayName = 'SelectionModeHeader';
 
 // Select all row component
@@ -282,13 +247,13 @@ const SelectAllRow: React.FC<SelectAllRowProps> = ({
 };
 
 SelectAllRow.displayName = 'SelectAllRow';
-
 export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
   props => {
     const [menuVisible, setMenuVisible] = useState<string | null>(null);
     const [menuPosition, setMenuPosition] = useState({x: 0, y: 0});
     const [sessionToRename, setSessionToRename] =
       useState<SessionMetaData | null>(null);
+    const [renameModalVisible, setRenameModalVisible] = useState(false); 
 
     const theme = useTheme();
     const styles = createStyles(theme);
@@ -338,105 +303,154 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
       [openMenu],
     );
 
-    const handlePressRename = React.useCallback(
-      (session: SessionMetaData) => {
-        setSessionToRename(session);
-        closeMenu();
-      },
-      [closeMenu],
+    const handleSessionLongPress = React.useCallback(
+  (sessionId: string, event: any) => {
+    openMenu(sessionId, event);
+  },
+  [openMenu],
+);
+
+const handlePressRename = React.useCallback((session: SessionMetaData) => {
+  setSessionToRename(session);
+  setRenameModalVisible(true);
+}, []);
+
+const handleRenameConfirm = React.useCallback(
+  async (newTitle: string) => {
+    if (sessionToRename && newTitle.trim()) {
+      await chatSessionStore.renameSession(sessionToRename.id, newTitle.trim());
+    }
+    setRenameModalVisible(false);
+    setSessionToRename(null);
+  },
+  [sessionToRename],
+);
+
+const handleRenameCancel = React.useCallback(() => {
+  setRenameModalVisible(false);
+  setSessionToRename(null);
+}, []);
+
+const handlePressDelete = React.useCallback(
+  async (sessionId: string) => {
+    Alert.alert(
+      l10n.components.sidebarContent.deleteConfirmationTitle,
+      l10n.components.sidebarContent.deleteConfirmationMessage,
+      [
+        {
+          text: l10n.common.cancel,
+          style: 'cancel',
+        },
+        {
+          text: l10n.common.delete,
+          style: 'destructive',
+          onPress: async () => {
+            await chatSessionStore.deleteSession(sessionId);
+          },
+        },
+      ],
     );
+  },
+  [l10n],
+);
 
-    const onPressDelete = React.useCallback(
-      (sessionId: string) => {
-        if (sessionId) {
-          Alert.alert(
-            l10n.components.sidebarContent.deleteChatTitle,
-            l10n.components.sidebarContent.deleteChatMessage,
-            [
-              {
-                text: l10n.common.cancel,
-                style: 'cancel',
-              },
-              {
-                text: l10n.common.delete,
-                style: 'destructive',
-                onPress: async () => {
-                  chatSessionStore.resetActiveSession();
-                  await chatSessionStore.deleteSession(sessionId);
-                  closeMenu();
-                },
-              },
-            ],
-          );
-        }
-      },
-      [l10n, closeMenu],
-    );
-
-    const handlePressExport = React.useCallback(
-      async (sessionId: string) => {
-        try {
-          await exportChatSession(sessionId);
-        } catch {
-          Alert.alert(
-            l10n.common.error,
-            l10n.components.sidebarContent.exportError,
-          );
-        }
-      },
-      [l10n],
-    );
-
-    const handlePressSelect = React.useCallback(
-      (sessionId: string) => {
-        chatSessionStore.enterSelectionMode(sessionId);
-        closeMenu();
-      },
-      [closeMenu],
-    );
-
-    const handleExitSelectionMode = React.useCallback(() => {
-      chatSessionStore.exitSelectionMode();
-    }, []);
-
-    const handleToggleSelection = React.useCallback((sessionId: string) => {
-      chatSessionStore.toggleSessionSelection(sessionId);
-    }, []);
-
-    const handleBulkDelete = React.useCallback(() => {
-      const count = chatSessionStore.selectedCount;
-
+const handlePressExport = React.useCallback(
+  async (sessionId: string) => {
+    const session = chatSessionStore.sessions.get(sessionId);
+    if (!session) return;
+    
+    const success = await exportChatSession(session);
+    if (success) {
       Alert.alert(
-        l10n.components.sidebarContent.bulkDeleteTitle,
-        t(l10n.components.sidebarContent.bulkDeleteMessage, {
-          count: count.toString(),
-        }),
-        [
-          {
-            text: l10n.common.cancel,
-            style: 'cancel',
-          },
-          {
-            text: l10n.common.delete,
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await chatSessionStore.bulkDeleteSessions();
-              } catch {
-                Alert.alert(
-                  l10n.common.error,
-                  l10n.components.sidebarContent.bulkDeleteError,
-                );
-              }
-            },
-          },
-        ],
+        l10n.common.success,
+        l10n.components.sidebarContent.exportSuccess,
       );
-    }, [l10n]);
+    } else {
+      Alert.alert(
+        l10n.common.error,
+        l10n.components.sidebarContent.exportError,
+      );
+    }
+  },
+  [l10n],
+);
 
-    const handleBulkExport = React.useCallback(async () => {
+const handlePressSelect = React.useCallback(
+  (sessionId: string) => {
+    chatSessionStore.toggleSessionSelection(sessionId);
+    setMenuVisible(null);
+  },
+  [],
+);
+
+const handleToggleSelection = React.useCallback(
+  (sessionId: string) => {
+    chatSessionStore.toggleSessionSelection(sessionId);
+  },
+  [],
+);
+
+const handleSelectAll = React.useCallback(() => {
+  chatSessionStore.toggleAllSessionsSelection();
+}, []);
+
+const handleCancelSelection = React.useCallback(() => {
+  chatSessionStore.clearSelection();
+}, []);
+
+const handleExportSelected = React.useCallback(async () => {
+  const selectedIds = chatSessionStore.selectedSessionIds;
+  if (selectedIds.length === 0) return;
+  
+  // Exporter les sessions sélectionnées
+  let success = true;
+  for (const id of selectedIds) {
+    const session = chatSessionStore.sessions.get(id);
+    if (session) {
+      const result = await exportChatSession(session);
+      if (!result) success = false;
+    }
+  }
+  
+  if (success) {
+    Alert.alert(l10n.common.success, l10n.components.sidebarContent.exportSuccess);
+  } else {
+    Alert.alert(l10n.common.error, l10n.components.sidebarContent.exportError);
+  }
+  chatSessionStore.clearSelection();
+}, [l10n]);
+
+const handleDeleteSelected = React.useCallback(() => {
+  const selectedIds = chatSessionStore.selectedSessionIds;
+  if (selectedIds.length === 0) return;
+  
+  Alert.alert(
+    l10n.components.sidebarContent.deleteConfirmationTitle,
+    `${l10n.components.sidebarContent.deleteSelectedConfirmation} ${selectedIds.length} ${l10n.components.sidebarContent.sessions}`,
+    [
+      {
+        text: l10n.common.cancel,
+        style: 'cancel',
+      },
+      {
+        text: l10n.common.delete,
+        style: 'destructive',
+        onPress: async () => {
+          await chatSessionStore.deleteSelectedSessions();
+        },
+      },
+    ],
+  );
+}, [l10n]);
+
+    
+                                    const handleBulkExport = React.useCallback(async () => {
       try {
         await chatSessionStore.bulkExportSessions();
+        Alert.alert(
+          l10n.common.success,
+          l10n.components.sidebarContent.bulkExportSuccess,
+        );
       } catch {
         Alert.alert(
           l10n.common.error,
@@ -445,161 +459,9 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
       }
     }, [l10n]);
 
-    // Key extractor for SectionList
-    const keyExtractor = React.useCallback(
-      (item: SessionMetaData) => item.id,
-      [],
-    );
+    const isSelectionMode = chatSessionStore.isSelectionMode;
 
-    // Render section header (date labels)
-    const renderSectionHeader = React.useCallback(
-      ({section}: {section: {title: string}}) => (
-        <View style={styles.drawerSection}>
-          <Text variant="bodySmall" style={styles.dateLabel}>
-            {section.title}
-          </Text>
-        </View>
-      ),
-      [styles.drawerSection, styles.dateLabel],
-    );
-
-    // Render session item
-    // observer() HOC handles MobX reactivity for chatSessionStore.activeSessionId
-    const renderItem = React.useCallback(
-      ({item}: {item: SessionMetaData}) => {
-        const isActive = chatSessionStore.activeSessionId === item.id;
-        const isSelected = chatSessionStore.selectedSessionIds.has(item.id);
-        return (
-          <SessionItem
-            session={item}
-            isActive={isActive}
-            onPress={handleSessionPress}
-            onLongPress={handleSessionLongPress}
-            menuVisible={menuVisible}
-            menuPosition={menuPosition}
-            onMenuDismiss={closeMenu}
-            onPressRename={handlePressRename}
-            onPressDelete={onPressDelete}
-            onPressExport={handlePressExport}
-            onPressSelect={handlePressSelect}
-            isSelectionMode={chatSessionStore.isSelectionMode}
-            isSelected={isSelected}
-            onToggleSelection={handleToggleSelection}
-            theme={theme}
-            styles={styles}
-            l10n={l10n}
-          />
-        );
-      },
-      [
-        handleSessionPress,
-        handleSessionLongPress,
-        menuVisible,
-        menuPosition,
-        closeMenu,
-        handlePressRename,
-        onPressDelete,
-        handlePressExport,
-        handlePressSelect,
-        handleToggleSelection,
-        theme,
-        styles,
-        l10n,
-      ],
-    );
-
-    // List header with main menu items
-    const ListHeaderComponent = React.useMemo(
-      () => (
-        <View>
-          <Drawer.Section showDivider={false}>
-            <Drawer.Item
-              label={l10n.components.sidebarContent.menuItems.chat}
-              icon={() => <ChatIcon stroke={theme.colors.primary} />}
-              onPress={() => props.navigation.navigate(ROUTES.CHAT)}
-              style={styles.menuDrawerItem}
-              testID="drawer-item-chat"
-            />
-            <Drawer.Item
-              label={l10n.components.sidebarContent.menuItems.pals}
-              icon={() => <PalIcon stroke={theme.colors.primary} />}
-              onPress={() => props.navigation.navigate(ROUTES.PALS)}
-              style={styles.menuDrawerItem}
-              testID="drawer-item-pals"
-            />
-            <Drawer.Item
-              label={l10n.components.sidebarContent.menuItems.models}
-              icon={() => <ModelIcon stroke={theme.colors.primary} />}
-              onPress={() => props.navigation.navigate(ROUTES.MODELS)}
-              style={styles.menuDrawerItem}
-              testID="drawer-item-models"
-            />
-            <Drawer.Item
-              label={l10n.components.sidebarContent.menuItems.benchmark}
-              icon={() => <BenchmarkIcon stroke={theme.colors.primary} />}
-              onPress={() => props.navigation.navigate(ROUTES.BENCHMARK)}
-              style={styles.menuDrawerItem}
-              testID="drawer-item-benchmark"
-            />
-            <Drawer.Item
-              label={l10n.components.sidebarContent.menuItems.settings}
-              icon={() => (
-                <SettingsIcon
-                  width={24}
-                  height={24}
-                  stroke={theme.colors.primary}
-                />
-              )}
-              onPress={() => props.navigation.navigate(ROUTES.SETTINGS)}
-              style={styles.menuDrawerItem}
-              testID="drawer-item-settings"
-            />
-            <Drawer.Item
-              label={l10n.components.sidebarContent.menuItems.appInfo}
-              icon={() => (
-                <AppInfoIcon
-                  width={24}
-                  height={24}
-                  stroke={theme.colors.primary}
-                />
-              )}
-              onPress={() => props.navigation.navigate(ROUTES.APP_INFO)}
-              style={styles.menuDrawerItem}
-            />
-            <Drawer.Item
-              label="API & IA"
-              icon={() => (
-                <SettingsIcon
-                  width={24}
-                  height={24}
-                  stroke={theme.colors.primary}
-                />
-              )}
-              onPress={() => props.navigation.navigate(ROUTES.API_SETTINGS)}
-              style={styles.menuDrawerItem}
-                />
-            {/* Only show Dev Tools in debug mode */}
-            {isDebugMode && (
-              <Drawer.Item
-                label="Dev Tools"
-                icon={() => (
-                  <SettingsIcon
-                    width={24}
-                    height={24}
-                    stroke={theme.colors.primary}
-                  />
-                )}
-                onPress={() => props.navigation.navigate(ROUTES.DEV_TOOLS)}
-                style={styles.menuDrawerItem}
-              />
-            )}
-          </Drawer.Section>
-          <Divider style={styles.divider} />
-        </View>
-      ),
-      [l10n, theme, styles, props.navigation],
-    );
-
+    // Rendu principal
     return (
       <GestureHandlerRootView style={styles.sidebarContainer}>
         <View
@@ -607,55 +469,171 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
             styles.contentWrapper,
             {paddingTop: insets.top, paddingBottom: insets.bottom},
           ]}>
-          {chatSessionStore.isSelectionMode ? (
+          {isSelectionMode ? (
             <>
               <SelectionModeHeader
                 selectedCount={chatSessionStore.selectedCount}
-                onCancel={handleExitSelectionMode}
-                onExport={handleBulkExport}
-                onDelete={handleBulkDelete}
+                onCancel={handleCancelSelection}
+                onExport={handleExportSelected}
+                onDelete={handleDeleteSelected}
                 l10n={l10n}
                 theme={theme}
                 styles={styles}
               />
-              <SelectAllRow
-                allSelected={chatSessionStore.allSelected}
-                onToggle={() =>
-                  chatSessionStore.allSelected
-                    ? chatSessionStore.deselectAllSessions()
-                    : chatSessionStore.selectAllSessions()
-                }
-                l10n={l10n}
-                styles={styles}
-              />
-              <Divider style={styles.selectAllDivider} />
-              <SectionList
-                sections={sections}
-                keyExtractor={keyExtractor}
-                renderItem={renderItem}
-                renderSectionHeader={renderSectionHeader}
-                stickySectionHeadersEnabled={false}
-                contentContainerStyle={styles.scrollViewContent}
-              />
+              {chatSessionStore.selectedCount > 0 && (
+                <SelectAllRow
+                  allSelected={chatSessionStore.allSelected}
+                  onToggle={handleSelectAll}
+                  l10n={l10n}
+                  styles={styles}
+                />
+              )}
             </>
           ) : (
-            <SectionList
-              sections={sections}
-              keyExtractor={keyExtractor}
-              renderItem={renderItem}
-              renderSectionHeader={renderSectionHeader}
-              ListHeaderComponent={ListHeaderComponent}
-              stickySectionHeadersEnabled={false}
-              contentContainerStyle={styles.scrollViewContent}
-            />
+            <>
+              {/* ✅ MENU PRINCIPAL - AJOUTE LES ITEMS ICI */}
+              <View style={styles.menuSection}>
+                <Drawer.Item
+                  label={l10n.components.sidebarContent.menuItems.chat}
+                  icon={() => <ChatIcon stroke={theme.colors.primary} />}
+                  onPress={() => props.navigation.navigate(ROUTES.CHAT)}
+                  style={styles.menuDrawerItem}
+                  testID="drawer-item-chat"
+                />
+
+                {/* ✅ AJOUTE CHAT API, AGRICULTURE, CONNECTION ICI */}
+                <Drawer.Item
+                  label="Chat API"
+                  icon={() => <Icon name="api" size={24} color={theme.colors.primary} />}
+                  onPress={() => props.navigation.navigate("ApiChat")}
+                  style={styles.menuDrawerItem}
+                  testID="drawer-item-apichat"
+                />
+
+                <Drawer.Item
+                  label="Agriculture"
+                  icon={() => <Icon name="sprout" size={24} color={theme.colors.primary} />}
+                  onPress={() => props.navigation.navigate("Agriculture")}
+                  style={styles.menuDrawerItem}
+                  testID="drawer-item-agriculture"
+                />
+
+                <Drawer.Item
+                  label="Connection"
+                  icon={() => <Icon name="bluetooth" size={24} color={theme.colors.primary} />}
+                  onPress={() => props.navigation.navigate("Connection")}
+                  style={styles.menuDrawerItem}
+                  testID="drawer-item-connection"
+                />
+
+                <Drawer.Item
+                  label={l10n.components.sidebarContent.menuItems.pals}
+                  icon={() => <PalIcon stroke={theme.colors.primary} />}
+                  onPress={() => props.navigation.navigate(ROUTES.PALS)}
+                  style={styles.menuDrawerItem}
+                  testID="drawer-item-pals"
+                />
+
+                <Drawer.Item
+                  label={l10n.components.sidebarContent.menuItems.models}
+                  icon={() => <ModelIcon stroke={theme.colors.primary} />}
+                  onPress={() => props.navigation.navigate(ROUTES.MODELS)}
+                  style={styles.menuDrawerItem}
+                  testID="drawer-item-models"
+                />
+
+                <Drawer.Item
+                  label={l10n.components.sidebarContent.menuItems.benchmark}
+                  icon={() => <BenchmarkIcon stroke={theme.colors.primary} />}
+                  onPress={() => props.navigation.navigate(ROUTES.BENCHMARK)}
+                  style={styles.menuDrawerItem}
+                  testID="drawer-item-benchmark"
+                />
+
+                <Drawer.Item
+                  label={l10n.components.sidebarContent.menuItems.settings}
+                  icon={() => <SettingsIcon stroke={theme.colors.primary} />}
+                  onPress={() => props.navigation.navigate(ROUTES.SETTINGS)}
+                  style={styles.menuDrawerItem}
+                  testID="drawer-item-settings"
+                />
+
+                <Drawer.Item
+                  label={l10n.components.sidebarContent.menuItems.appInfo}
+                  icon={() => <AppInfoIcon stroke={theme.colors.primary} />}
+                  onPress={() => props.navigation.navigate(ROUTES.APP_INFO)}
+                  style={styles.menuDrawerItem}
+                  testID="drawer-item-appinfo"
+                />
+
+                <Drawer.Item
+                  label="API & IA"
+                  icon={() => <SettingsIcon stroke={theme.colors.primary} />}
+                  onPress={() => props.navigation.navigate(ROUTES.API_SETTINGS)}
+                  style={styles.menuDrawerItem}
+                  testID="drawer-item-api-settings"
+                />
+
+                {isDebugMode && (
+                  <Drawer.Item
+                    label="Dev Tools"
+                    icon={() => <SettingsIcon stroke={theme.colors.primary} />}
+                    onPress={() => props.navigation.navigate(ROUTES.DEV_TOOLS)}
+                    style={styles.menuDrawerItem}
+                    testID="drawer-item-dev-tools"
+                  />
+                )}
+              </View>
+
+              {/* Liste des sessions */}
+              <Divider style={styles.divider} />
+              <SectionList
+                sections={sections}
+                keyExtractor={(item) => item.id}
+                renderItem={({item}) => (
+                  <SessionItem
+                    session={item}
+                    isActive={chatSessionStore.activeSessionId === item.id}
+                    onPress={handleSessionPress}
+                    onLongPress={handleSessionLongPress}
+                    menuVisible={menuVisible}
+                    menuPosition={menuPosition}
+                    onMenuDismiss={closeMenu}
+                    onPressRename={handlePressRename}
+                    onPressDelete={handlePressDelete}
+                    onPressExport={handlePressExport}
+                    onPressSelect={handlePressSelect}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={chatSessionStore.selectedSessionIds.includes(item.id)}
+                    onToggleSelection={handleToggleSelection}
+                    theme={theme}
+                    styles={styles}
+                    l10n={l10n}
+                  />
+                )}
+                renderSectionHeader={({section: {title}}) => (
+                  <Text style={styles.sectionHeader}>{title}</Text>
+                )}
+                stickySectionHeadersEnabled={false}
+                contentContainerStyle={styles.listContent}
+                keyExtractor={item => item.id}
+              />
+            </>
           )}
         </View>
+
+        {/* Modale de renommage */}
         <RenameModal
-          visible={sessionToRename !== null}
-          onClose={() => setSessionToRename(null)}
-          session={sessionToRename}
+          visible={renameModalVisible}
+          initialValue={sessionToRename?.title || ''}
+          onConfirm={handleRenameConfirm}
+          onCancel={handleRenameCancel}
+          title={l10n.components.sidebarContent.renameSession}
+          placeholder={l10n.components.sidebarContent.enterSessionName}
         />
       </GestureHandlerRootView>
     );
   },
 );
+
+SidebarContent.displayName = 'SidebarContent';
