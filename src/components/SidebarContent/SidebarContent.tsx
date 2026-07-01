@@ -1,4 +1,4 @@
-  import React, {useContext, useEffect, useState} from 'react';
+import React, {useContext, useEffect, useState} from 'react';
 import {TouchableOpacity, View, Alert, SectionList} from 'react-native';
 import {observer} from 'mobx-react';
 import {Divider, Drawer, Text} from 'react-native-paper';
@@ -30,25 +30,6 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 // Check if app is in debug mode
 const isDebugMode = __DEV__;
 
-// ... (SessionItem, SelectionModeHeader, SelectAllRow)
-
-export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
-  props => {
-    const [menuVisible, setMenuVisible] = useState<string | null>(null);
-    const [menuPosition, setMenuPosition] = useState({x: 0, y: 0});
-    const [sessionToRename, setSessionToRename] = useState<SessionMetaData | null>(null);
-    const [renameModalVisible, setRenameModalVisible] = useState(false); // ✅ AJOUTÉ
-
-    const theme = useTheme();
-    const styles = createStyles(theme);
-    const l10n = useContext(L10nContext);
-    const insets = useSafeAreaInsets();
-
-    // ... (le reste du code avec les callbacks et le render)
-  }
-);
-
-SidebarContent.displayName = 'SidebarContent';
 // Session item props interface
 interface SessionItemProps {
   session: SessionMetaData;
@@ -247,13 +228,14 @@ const SelectAllRow: React.FC<SelectAllRowProps> = ({
 };
 
 SelectAllRow.displayName = 'SelectAllRow';
+
 export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
   props => {
     const [menuVisible, setMenuVisible] = useState<string | null>(null);
     const [menuPosition, setMenuPosition] = useState({x: 0, y: 0});
     const [sessionToRename, setSessionToRename] =
       useState<SessionMetaData | null>(null);
-    const [renameModalVisible, setRenameModalVisible] = useState(false); 
+    const [renameModalVisible, setRenameModalVisible] = useState(false);
 
     const theme = useTheme();
     const styles = createStyles(theme);
@@ -303,158 +285,156 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
       [openMenu],
     );
 
-    const handleSessionLongPress = React.useCallback(
-  (sessionId: string, event: any) => {
-    openMenu(sessionId, event);
-  },
-  [openMenu],
-);
+    const handlePressRename = React.useCallback((session: SessionMetaData) => {
+      setSessionToRename(session);
+      setRenameModalVisible(true);
+    }, []);
 
-const handlePressRename = React.useCallback((session: SessionMetaData) => {
-  setSessionToRename(session);
-  setRenameModalVisible(true);
-}, []);
-
-const handleRenameConfirm = React.useCallback(
-  async (newTitle: string) => {
-    if (sessionToRename && newTitle.trim()) {
-      await chatSessionStore.renameSession(sessionToRename.id, newTitle.trim());
-    }
-    setRenameModalVisible(false);
-    setSessionToRename(null);
-  },
-  [sessionToRename],
-);
-
-const handleRenameCancel = React.useCallback(() => {
-  setRenameModalVisible(false);
-  setSessionToRename(null);
-}, []);
-
-const handlePressDelete = React.useCallback(
-  async (sessionId: string) => {
-    Alert.alert(
-      l10n.components.sidebarContent.deleteConfirmationTitle,
-      l10n.components.sidebarContent.deleteConfirmationMessage,
-      [
-        {
-          text: l10n.common.cancel,
-          style: 'cancel',
-        },
-        {
-          text: l10n.common.delete,
-          style: 'destructive',
-          onPress: async () => {
-            await chatSessionStore.deleteSession(sessionId);
-          },
-        },
-      ],
+    const handleRenameConfirm = React.useCallback(
+      async (newTitle: string) => {
+        if (sessionToRename && newTitle.trim()) {
+          await chatSessionStore.renameSession(sessionToRename.id, newTitle.trim());
+        }
+        setRenameModalVisible(false);
+        setSessionToRename(null);
+      },
+      [sessionToRename],
     );
-  },
-  [l10n],
-);
 
-const handlePressExport = React.useCallback(
-  async (sessionId: string) => {
-    const session = chatSessionStore.sessions.get(sessionId);
-    if (!session) return;
-    
-    const success = await exportChatSession(session);
-    if (success) {
-      Alert.alert(
-        l10n.common.success,
-        l10n.components.sidebarContent.exportSuccess,
-      );
-    } else {
-      Alert.alert(
-        l10n.common.error,
-        l10n.components.sidebarContent.exportError,
-      );
-    }
-  },
-  [l10n],
-);
+    const handleRenameCancel = React.useCallback(() => {
+      setRenameModalVisible(false);
+      setSessionToRename(null);
+    }, []);
 
-const handlePressSelect = React.useCallback(
-  (sessionId: string) => {
-    chatSessionStore.toggleSessionSelection(sessionId);
-    setMenuVisible(null);
-  },
-  [],
-);
-
-const handleToggleSelection = React.useCallback(
-  (sessionId: string) => {
-    chatSessionStore.toggleSessionSelection(sessionId);
-  },
-  [],
-);
-
-const handleSelectAll = React.useCallback(() => {
-  chatSessionStore.toggleAllSessionsSelection();
-}, []);
-
-const handleCancelSelection = React.useCallback(() => {
-  chatSessionStore.clearSelection();
-}, []);
-
-const handleExportSelected = React.useCallback(async () => {
-  const selectedIds = chatSessionStore.selectedSessionIds;
-  if (selectedIds.length === 0) return;
-  
-  // Exporter les sessions sélectionnées
-  let success = true;
-  for (const id of selectedIds) {
-    const session = chatSessionStore.sessions.get(id);
-    if (session) {
-      const result = await exportChatSession(session);
-      if (!result) success = false;
-    }
-  }
-  
-  if (success) {
-    Alert.alert(l10n.common.success, l10n.components.sidebarContent.exportSuccess);
-  } else {
-    Alert.alert(l10n.common.error, l10n.components.sidebarContent.exportError);
-  }
-  chatSessionStore.clearSelection();
-}, [l10n]);
-
-const handleDeleteSelected = React.useCallback(() => {
-  const selectedIds = chatSessionStore.selectedSessionIds;
-  if (selectedIds.length === 0) return;
-  
-  Alert.alert(
-    l10n.components.sidebarContent.deleteConfirmationTitle,
-    `${l10n.components.sidebarContent.deleteSelectedConfirmation} ${selectedIds.length} ${l10n.components.sidebarContent.sessions}`,
-    [
-      {
-        text: l10n.common.cancel,
-        style: 'cancel',
+    const handlePressDelete = React.useCallback(
+      async (sessionId: string) => {
+        Alert.alert(
+          l10n.components.sidebarContent.deleteConfirmationTitle || 'Confirm Delete',
+          l10n.components.sidebarContent.deleteConfirmationMessage || 'Are you sure you want to delete this session?',
+          [
+            {
+              text: l10n.common.cancel,
+              style: 'cancel',
+            },
+            {
+              text: l10n.common.delete,
+              style: 'destructive',
+              onPress: async () => {
+                await chatSessionStore.deleteSession(sessionId);
+              },
+            },
+          ],
+        );
       },
-      {
-        text: l10n.common.delete,
-        style: 'destructive',
-        onPress: async () => {
-          await chatSessionStore.deleteSelectedSessions();
-        },
-      },
-    ],
-  );
-}, [l10n]);
+      [l10n],
+    );
 
-    
-                                    const handleBulkExport = React.useCallback(async () => {
+    const handlePressExport = React.useCallback(
+      async (sessionId: string) => {
+        const session = Array.from(chatSessionStore.sessions).find(s => s.id === sessionId);
+        if (!session) return;
+        
+        const success = await exportChatSession(session);
+        if (success) {
+          Alert.alert(
+            l10n.common.success || 'Success',
+            l10n.components.sidebarContent.exportSuccess || 'Session exported successfully',
+          );
+        } else {
+          Alert.alert(
+            l10n.common.error || 'Error',
+            l10n.components.sidebarContent.exportError || 'Failed to export session',
+          );
+        }
+      },
+      [l10n],
+    );
+
+    const handlePressSelect = React.useCallback(
+      (sessionId: string) => {
+        chatSessionStore.toggleSessionSelection(sessionId);
+        setMenuVisible(null);
+      },
+      [],
+    );
+
+    const handleToggleSelection = React.useCallback(
+      (sessionId: string) => {
+        chatSessionStore.toggleSessionSelection(sessionId);
+      },
+      [],
+    );
+
+    const handleSelectAll = React.useCallback(() => {
+      chatSessionStore.toggleAllSessionsSelection();
+    }, []);
+
+    const handleCancelSelection = React.useCallback(() => {
+      chatSessionStore.clearSelection();
+    }, []);
+
+    const handleExportSelected = React.useCallback(async () => {
+      const selectedIds = Array.from(chatSessionStore.selectedSessionIds);
+      if (selectedIds.length === 0) return;
+      
+      // Exporter les sessions sélectionnées
+      let success = true;
+      for (const id of selectedIds) {
+        const session = Array.from(chatSessionStore.sessions).find(s => s.id === id);
+        if (session) {
+          const result = await exportChatSession(session);
+          if (!result) success = false;
+        }
+      }
+      
+      if (success) {
+        Alert.alert(
+          l10n.common.success || 'Success',
+          l10n.components.sidebarContent.exportSuccess || 'Sessions exported successfully',
+        );
+      } else {
+        Alert.alert(
+          l10n.common.error || 'Error',
+          l10n.components.sidebarContent.exportError || 'Failed to export some sessions',
+        );
+      }
+      chatSessionStore.clearSelection();
+    }, [l10n]);
+
+    const handleDeleteSelected = React.useCallback(() => {
+      const selectedIds = Array.from(chatSessionStore.selectedSessionIds);
+      if (selectedIds.length === 0) return;
+      
+      Alert.alert(
+        l10n.components.sidebarContent.deleteConfirmationTitle || 'Confirm Delete',
+        `${l10n.components.sidebarContent.deleteSelectedConfirmation || 'Delete'} ${selectedIds.length} ${l10n.components.sidebarContent.sessions || 'sessions'}?`,
+        [
+          {
+            text: l10n.common.cancel,
+            style: 'cancel',
+          },
+          {
+            text: l10n.common.delete,
+            style: 'destructive',
+            onPress: async () => {
+              await chatSessionStore.deleteSelectedSessions();
+            },
+          },
+        ],
+      );
+    }, [l10n]);
+
+    const handleBulkExport = React.useCallback(async () => {
       try {
         await chatSessionStore.bulkExportSessions();
         Alert.alert(
-          l10n.common.success,
-          l10n.components.sidebarContent.bulkExportSuccess,
+          l10n.common.success || 'Success',
+          l10n.components.sidebarContent.bulkExportSuccess || 'Sessions exported successfully',
         );
       } catch {
         Alert.alert(
-          l10n.common.error,
-          l10n.components.sidebarContent.bulkExportError,
+          l10n.common.error || 'Error',
+          l10n.components.sidebarContent.bulkExportError || 'Failed to export sessions',
         );
       }
     }, [l10n]);
@@ -491,7 +471,7 @@ const handleDeleteSelected = React.useCallback(() => {
             </>
           ) : (
             <>
-              {/* ✅ MENU PRINCIPAL - AJOUTE LES ITEMS ICI */}
+              {/* MENU PRINCIPAL */}
               <View style={styles.menuSection}>
                 <Drawer.Item
                   label={l10n.components.sidebarContent.menuItems.chat}
@@ -501,7 +481,6 @@ const handleDeleteSelected = React.useCallback(() => {
                   testID="drawer-item-chat"
                 />
 
-                {/* ✅ AJOUTE CHAT API, AGRICULTURE, CONNECTION ICI */}
                 <Drawer.Item
                   label="Chat API"
                   icon={() => <Icon name="api" size={24} color={theme.colors.primary} />}
@@ -604,7 +583,7 @@ const handleDeleteSelected = React.useCallback(() => {
                     onPressExport={handlePressExport}
                     onPressSelect={handlePressSelect}
                     isSelectionMode={isSelectionMode}
-                    isSelected={chatSessionStore.selectedSessionIds.includes(item.id)}
+                    isSelected={Array.from(chatSessionStore.selectedSessionIds).includes(item.id)}
                     onToggleSelection={handleToggleSelection}
                     theme={theme}
                     styles={styles}
@@ -616,7 +595,6 @@ const handleDeleteSelected = React.useCallback(() => {
                 )}
                 stickySectionHeadersEnabled={false}
                 contentContainerStyle={styles.listContent}
-                keyExtractor={item => item.id}
               />
             </>
           )}
