@@ -106,14 +106,17 @@ const SessionItem = React.memo<SessionItemProps>(
             label={session.title}
             style={styles.sessionDrawerItem}
           />
-          <Drawer.Item
-  label="Chat API"
-  icon={() => <Icon name="api" size={24} color={theme.colors.primary} />}
-  onPress={() => props.navigation.navigate("ApiChat")}
-  style={styles.menuDrawerItem}
-  testID="drawer-item-apichat"
-/>
         </TouchableOpacity>
+
+        {/* ✅ CHAT API - EN DEHORS DU TOUCHABLEOPACITY */}
+        <Drawer.Item
+          label="Chat API"
+          icon={() => <Icon name="api" size={24} color={theme.colors.primary} />}
+          onPress={() => onPress("ApiChat")}
+          style={styles.menuDrawerItem}
+          testID="drawer-item-apichat"
+        />
+
         {!isSelectionMode && (
           <Menu
             visible={menuVisible === session.id}
@@ -163,7 +166,6 @@ const SessionItem = React.memo<SessionItemProps>(
 );
 
 SessionItem.displayName = 'SessionItem';
-
 // Selection mode header component
 interface SelectionModeHeaderProps {
   selectedCount: number;
