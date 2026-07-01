@@ -44,7 +44,6 @@ import {
   AgricultureScreen,
   ConnectionScreen,
   ApiChatScreen,
-
   // Dev tools screen. Only available in debug mode.
   DevToolsScreen,
 } from './src/screens';
@@ -105,6 +104,8 @@ const App = observer(() => {
                         headerTitleStyle: styles.headerTitle,
                       }}
                       drawerContent={props => <SidebarContent {...props} />}>
+                      
+                      {/* CHAT */}
                       <Drawer.Screen
                         name={ROUTES.CHAT}
                         component={gestureHandlerRootHOC(ChatScreen)}
@@ -112,14 +113,18 @@ const App = observer(() => {
                           headerShown: false,
                         }}
                       />
+
+                      {/* ✅ CHAT API - AJOUTÉ APRÈS CHAT */}
                       <Drawer.Screen
-  name="ApiChat"
-  component={gestureHandlerRootHOC(ApiChatScreen)}
-  options={{
-    headerShown: true,
-    title: "Chat API",
-  }}
-/>
+                        name="ApiChat"
+                        component={gestureHandlerRootHOC(ApiChatScreen)}
+                        options={{
+                          headerShown: true,
+                          title: "Chat API",
+                        }}
+                      />
+
+                      {/* PALS */}
                       <Drawer.Screen
                         name={ROUTES.PALS}
                         component={gestureHandlerRootHOC(PalsScreen)}
@@ -129,6 +134,8 @@ const App = observer(() => {
                           title: currentL10n.screenTitles.pals,
                         }}
                       />
+
+                      {/* MODELS */}
                       <Drawer.Screen
                         name={ROUTES.MODELS}
                         component={gestureHandlerRootHOC(ModelsScreen)}
@@ -138,6 +145,8 @@ const App = observer(() => {
                           title: currentL10n.screenTitles.models,
                         }}
                       />
+
+                      {/* BENCHMARK */}
                       <Drawer.Screen
                         name={ROUTES.BENCHMARK}
                         component={gestureHandlerRootHOC(BenchmarkScreen)}
@@ -146,6 +155,8 @@ const App = observer(() => {
                           title: currentL10n.screenTitles.benchmark,
                         }}
                       />
+
+                      {/* SETTINGS */}
                       <Drawer.Screen
                         name={ROUTES.SETTINGS}
                         component={gestureHandlerRootHOC(SettingsScreen)}
@@ -154,6 +165,8 @@ const App = observer(() => {
                           title: currentL10n.screenTitles.settings,
                         }}
                       />
+
+                      {/* APP INFO */}
                       <Drawer.Screen
                         name={ROUTES.APP_INFO}
                         component={gestureHandlerRootHOC(AboutScreen)}
@@ -162,6 +175,8 @@ const App = observer(() => {
                           title: currentL10n.screenTitles.appInfo,
                         }}
                       />
+
+                      {/* API SETTINGS */}
                       <Drawer.Screen
                         name={ROUTES.API_SETTINGS}
                         component={gestureHandlerRootHOC(ApiSettingsScreen)}
@@ -170,6 +185,8 @@ const App = observer(() => {
                           title: 'API & IA',
                         }}
                       />
+
+                      {/* AGRICULTURE */}
                       <Drawer.Screen
                         name={ROUTES.AGRICULTURE}
                         component={gestureHandlerRootHOC(AgricultureScreen)}
@@ -178,6 +195,8 @@ const App = observer(() => {
                           title: '🌾 Agriculture & Élevage',
                         }}
                       />
+
+                      {/* CONNECTION */}
                       <Drawer.Screen
                         name={ROUTES.CONNECTION}
                         component={gestureHandlerRootHOC(ConnectionScreen)}
@@ -200,13 +219,13 @@ const App = observer(() => {
                       )}
 
                       {/*
-                      E2E-only deep-link-driven benchmark matrix runner.
-                      Hidden from the drawer sidebar via
-                      drawerItemStyle:{display:'none'}; reachable only by
-                      the deep link pocketpal://e2e/benchmark in the e2e
-                      flavor build (see useDeepLinking cold-launch effect
-                      and android/app/src/e2e/AndroidManifest.xml).
-                    */}
+                        E2E-only deep-link-driven benchmark matrix runner.
+                        Hidden from the drawer sidebar via
+                        drawerItemStyle:{display:'none'}; reachable only by
+                        the deep link pocketpal://e2e/benchmark in the e2e
+                        flavor build (see useDeepLinking cold-launch effect
+                        and android/app/src/e2e/AndroidManifest.xml).
+                      */}
                       {__E2E__ && (
                         <Drawer.Screen
                           name={ROUTES.BENCHMARK_RUNNER}
